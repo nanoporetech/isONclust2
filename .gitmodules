@@ -1,0 +1,18 @@
+[submodule "vendor/bioparser"]
+	path = vendor/bioparser
+	url = https://github.com/rvaser/bioparser.git
+[submodule "vendor/googletest"]
+	path = vendor/googletest
+	url = https://github.com/google/googletest.git
+[submodule "vendor/parasail"]
+	path = vendor/parasail
+	url = https://github.com/jeffdaily/parasail.git
+[submodule "vendor/tbb"]
+	path = vendor/tbb
+	url = https://github.com/wjakob/tbb.git
+[submodule "vendor/cereal"]
+	path = vendor/cereal
+	url = https://github.com/USCiLab/cereal.git
+[submodule "vendor/spoa"]
+	path = vendor/spoa
+	url = https://github.com/rvaser/spoa

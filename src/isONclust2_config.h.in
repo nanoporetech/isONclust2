@@ -1,4 +1,3 @@
 #define isONclust2_VERSION_MAJOR @isONclust2_VERSION_MAJOR@
 #define isONclust2_VERSION_MINOR @isONclust2_VERSION_MINOR@
-
-
+#define isONclust2_VERSION @CPACK_PACKAGE_VERSION@
