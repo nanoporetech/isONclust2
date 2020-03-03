@@ -121,9 +121,8 @@ bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
     const auto& kmerSeq = KmerEncodeSeq(hpcSeq.Str(), kmerSize);
     const auto& revKmerSeq = KmerEncodeSeq(RevComp(hpcSeq.Str()), kmerSize);
     hpcSeq.SetErrorRate(hpcErr);
-    rep.Mins = GetKmerMinimizers(kmerSeq, kmerSize, windowSize);
-    rep.RevMins =
-	std::move(GetKmerMinimizers(revKmerSeq, kmerSize, windowSize));
+    rep->Mins = GetKmerMinimizers(kmerSeq, kmerSize, windowSize);
+    rep->RevMins = GetKmerMinimizers(revKmerSeq, kmerSize, windowSize);
     return true;
 }
 
