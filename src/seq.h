@@ -2,6 +2,7 @@
 #define SEQ_H_INCLUDED
 
 #include <stdint.h>
+
 #include <cmath>
 #include <memory>
 #include <string>
@@ -39,7 +40,7 @@ public:
 	for (unsigned i = 0; i < qual.size(); i++) {
 	    w[i] = std::uint32_t(qual[i] - 33);
 	}
-	return std::move(w);
+	return w;
     }
     void SetQual(const std::string& qual) { this->qual = qual; }
 

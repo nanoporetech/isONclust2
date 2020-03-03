@@ -1,4 +1,5 @@
 #include "minimizer.h"
+
 #include <algorithm>
 #include <deque>
 #include <iostream>
@@ -6,6 +7,7 @@
 #include <set>
 #include <string>
 #include <unordered_set>
+
 #include "kmer_index.h"
 #include "seq.h"
 #include "tbb/parallel_for.h"
@@ -31,7 +33,7 @@ void AddMinimizers(const Minimizers& mins, unsigned cls, MinimizerDB& db)
     for (const auto& m : mins) {
 	auto v = db.find(m.Min);
 	if (v == db.end()) {
-	    db[m.Min] = std::move(RepSet{cls});
+	    db[m.Min] = RepSet{cls};
 	}
 	else if (v->second.size() == 0 || cls > v->second.back()) {
 	    v->second.emplace_back(cls);

@@ -1,9 +1,11 @@
 #include "consensus.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <random>
 #include <string>
+
 #include "cluster.h"
 #include "hpc.h"
 #include "util.h"
@@ -13,7 +15,7 @@ std::unique_ptr<spoa::AlignmentEngine> SpoaEngine;
 void AddSeqToGraph(const std::string& seq, spoa::Graph* graphPtr,
 		   spoa::AlignmentEngine* ae, std::uint32_t weight)
 {
-    auto graph = std::move(std::unique_ptr<spoa::Graph>(graphPtr));
+    auto graph = std::unique_ptr<spoa::Graph>(graphPtr);
     auto alignment = ae->align(seq, graph);
     graph->add_alignment(alignment, seq, weight);
     graph.release();
@@ -23,7 +25,7 @@ void AddSeqToGraphWeight(const std::string& seq,
 			 const std::vector<std::uint32_t>& w,
 			 spoa::Graph* graphPtr, spoa::AlignmentEngine* ae)
 {
-    auto graph = std::move(std::unique_ptr<spoa::Graph>(graphPtr));
+    auto graph = std::unique_ptr<spoa::Graph>(graphPtr);
     auto alignment = ae->align(seq, graph);
     graph->add_alignment(alignment, seq, w);
     graph.release();

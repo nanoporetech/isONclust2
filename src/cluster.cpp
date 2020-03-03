@@ -1,10 +1,12 @@
 #include "cluster.h"
+
 #include <algorithm>
 #include <cmath>
 #include <deque>
 #include <functional>
 #include <iostream>
 #include <numeric>
+
 #include "args.h"
 #include "cluster_data.h"
 #include "consensus.h"
@@ -170,14 +172,14 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet)
 		nrep->RawSeq.SetName(repName);
 		nrep->HpcSeq.SetName(repName);
 		reads[i]->insert(reads[i]->begin(), 1,
-				 std::move(std::unique_ptr<ProcSeq>(nrep)));
+				 std::unique_ptr<ProcSeq>(nrep));
 	    }
 	    leftBatch->ConsGs.emplace_back(spoa::createGraph());
 
 	    AddSeqToGraph(reads[i]->at(0)->RawSeq.Str(),
 			  leftBatch->ConsGs[newId].get(), SpoaEngine.get(), 1);
 
-	    cls.emplace_back(std::move(reads[i]));
+	    cls.emplace_back(reads[i]);
 	    if (nrReads == 1 && cls[newId]->size() != 2) {
 		std::cerr << "Inconsistent initial cluster size "
 			  << cls[newId]->size()
@@ -270,8 +272,8 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet)
 	    }
 
 	    if (ok && (int(consGraphLeft->num_sequences()) > consMaxSize)) {
-		auto newGraph = std::move(
-		    ConsPurge(consGraphLeft, SpoaEngine.get(), *(cls[best])));
+		auto newGraph =
+		    ConsPurge(consGraphLeft, SpoaEngine.get(), *(cls[best]));
 		leftBatch->ConsGs[best].swap(newGraph);
 	    }
 
