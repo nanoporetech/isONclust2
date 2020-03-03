@@ -10,7 +10,7 @@
 #include "seq.h"
 #include "tbb/parallel_for.h"
 
-StrandedClsHash ch;
+StrandedClsHash sch;
 
 bool operator==(const Minimizer& a, const Minimizer& b)
 {
@@ -31,10 +31,10 @@ void AddMinimizers(const Minimizers& mins, unsigned cls, MinimizerDB& db)
     for (const auto& m : mins) {
 	auto v = db.find(m.Min);
 	if (v == db.end()) {
-	    db[m.Min] = RepSet{cls};
+	    db[m.Min] = std::move(RepSet{cls});
 	}
-	else if (cls > v->second.back()) {
-	    v->second.push_back(cls);
+	else if (v->second.size() == 0 || cls > v->second.back()) {
+	    v->second.emplace_back(cls);
 	}
     }
 }
@@ -43,7 +43,7 @@ MinimizerHits GetMinimizerHits(const Minimizers& mins,
 			       const Minimizers& revMins, const MinimizerDB& db)
 {
     RawMinimizerHits hits;
-    MinimizerHits res(20 * (mins.size() + revMins.size()), ch);
+    MinimizerHits res(20 * (mins.size() + revMins.size()), sch);
 
     hits.reserve(20 * mins.size());
 
@@ -145,9 +145,9 @@ void UpdateMinDB(int best, const Minimizers& oldMins, const Minimizers& newMins,
 	tmp.erase(best);
 	mins.clear();
 	mins.insert(mins.begin(), tmp.begin(), tmp.end());
-	if (tmp.size() == 0) {
-	    db.erase(m);
-	}
+	// if (tmp.size() == 0) {
+	//    db.erase(m);
+	//}
     }
 
     for (auto m : toIns) {

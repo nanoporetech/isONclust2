@@ -9,16 +9,6 @@ void SaveBatch(const std::unique_ptr<Batch>& b, std::string outf)
     archive(*b);
 }
 
-void minDBInit(BatchP& p)
-{
-    auto& minDB = p->MinDB;
-    auto& cls = p->Cls;
-    unsigned i = 0;
-    for (auto& c : p->Cls) {
-	AddMinimizers(cls[i].at(REP).Mins, i, minDB);
-    }
-}
-
 BatchP LoadBatch(std::string inf)
 {
     std::ifstream instream(inf, std::ios::binary);
@@ -32,10 +22,6 @@ BatchP LoadBatch(std::string inf)
 	std::cerr << "Failed to load batch " << inf << ":" << e.what()
 		  << std::endl;
 	exit(1);
-    }
-    if (p->Depth > 0 && p->MinDB.size() == 0) {
-	p->MinDB = MinimizerDB(MIN_DB_RESERVE, uh);
-	minDBInit(p);
     }
     return p;
 }

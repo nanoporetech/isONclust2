@@ -86,13 +86,12 @@ include_directories(${PROJECT_SOURCE_DIR}/vendor/bioparser/include)
 include_directories(${PROJECT_SOURCE_DIR}/vendor/tbb/include)
 include_directories(${PROJECT_SOURCE_DIR}/vendor/parasail)
 include_directories(${PROJECT_SOURCE_DIR}/vendor/spoa)
-include_directories(${PROJECT_SOURCE_DIR}/vendor/cereal/include)
+include_directories(${PROJECT_SOURCE_DIR}/vendor/spoa/vendor/cereal/include)
 
 include_directories(${PROJECT_BINARY_DIR}/vendor/bioparser/vendor/zlib)
 add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)
 add_subdirectory(vendor/tbb EXCLUDE_FROM_ALL)
 add_subdirectory(vendor/parasail EXCLUDE_FROM_ALL)
-add_subdirectory(vendor/cereal EXCLUDE_FROM_ALL)
 add_subdirectory(vendor/spoa EXCLUDE_FROM_ALL)
 
 

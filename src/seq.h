@@ -2,6 +2,7 @@
 #define SEQ_H_INCLUDED
 
 #include <stdint.h>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <vector>
@@ -23,9 +24,23 @@ public:
     void SetName(const std::string& name) { this->name = name; }
 
     const std::string& Str() const { return seq; }
-    void SetStr(const std::string& seq) { this->seq = seq; }
+    unsigned Len() const { return unsigned(seq.length()); }
+    void SetStr(const std::string& seq)
+    {
+	this->seq = seq;
+	this->seq.reserve(this->seq.length());
+    }
 
     const std::string& Qual() const { return qual; }
+    unsigned MeanQual() const { return unsigned(-10 * log10(errorRate)); }
+    std::vector<std::uint32_t> Weights() const
+    {
+	std::vector<std::uint32_t> w(qual.size(), 0);
+	for (unsigned i = 0; i < qual.size(); i++) {
+	    w[i] = std::uint32_t(qual[i] - 33);
+	}
+	return std::move(w);
+    }
     void SetQual(const std::string& qual) { this->qual = qual; }
 
     double Score() const { return score; }

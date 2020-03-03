@@ -5,6 +5,8 @@
 #include "minimizer.h"
 #include "seq.h"
 
+using namespace std;
+
 extern bool VERBOSE;
 
 typedef struct {
@@ -20,8 +22,8 @@ typedef struct {
     };
 } ProcSeq;
 
-typedef std::vector<ProcSeq> Cluster;
-typedef std::vector<Cluster> Clusters;
+typedef std::vector<shared_ptr<ProcSeq>> Cluster;
+typedef std::vector<shared_ptr<Cluster>> Clusters;
 
 #endif
 

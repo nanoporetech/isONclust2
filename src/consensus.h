@@ -7,10 +7,23 @@
 #include <string>
 
 #include "qualscore.h"
+#include "serialize.h"
 #include "spoa/spoa.hpp"
 
-bool UpdateClusterConsensus(std::string& consName, Cluster& cl, int minSize,
-			    int maxSize, int lastSize, int kmerSize,
-			    int windowSize);
+bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
+			    spoa::Graph* leftGraphPtr,
+			    spoa::Graph* rightGraphPtr, ProcSeq* readRep,
+			    int matchStrand, int consMinSize, int consMaxSize,
+			    int kmerSize, int windowSize);
+
+void AddSeqToGraph(const std::string& seq, spoa::Graph* graphPtr,
+		   spoa::AlignmentEngine* ae, std::uint32_t weight);
+
+void AddSeqToGraphWeight(const std::string& seq,
+			 const std::vector<std::uint32_t>& w,
+			 spoa::Graph* graphPtr, spoa::AlignmentEngine* ae);
+
+std::unique_ptr<spoa::Graph> ConsPurge(spoa::Graph* graphPtr,
+				       spoa::AlignmentEngine* ae, Cluster& cl);
 
 #endif

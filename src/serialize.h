@@ -14,8 +14,11 @@
 #include "args.h"
 #include "cluster_data.h"
 #include "minimizer.h"
+#include "spoa/spoa.hpp"
 
 typedef std::vector<ProcSeq> SortedProcSeqs;
+typedef std::unique_ptr<spoa::Graph> ConsGraph;
+typedef std::vector<std::unique_ptr<spoa::Graph>> ConsGraphs;
 
 class Batch {
 public:
@@ -31,18 +34,38 @@ public:
     int Depth{0};
     MinimizerDB MinDB;
     Clusters Cls;
+    ConsGraphs ConsGs;
     template <class Archive>
     void serialize(Archive& archive)
     {
 	archive(BatchNr, BatchStart, BatchEnd, BatchBases, TotalReads, NrCls,
-		SortArgs, LeftLeaf, RightLeaf, Depth, MinDB, Cls);
+		SortArgs, LeftLeaf, RightLeaf, Depth, MinDB, Cls, ConsGs);
     };
+
     int NrClusters()
     {
 	if (NrCls == int(Cls.size())) {
 	    int count = 0;
 	    for (const auto& c : Cls) {
-		if (c.at(0).RawSeq.Score() > -1) {
+		if (c->at(0)->RawSeq.Score() > -1) {
+		    count++;
+		}
+	    }
+	    return count;
+	}
+	else {
+	    std::cerr << "Inconsistent batch state: NrCluster " << NrCls
+		      << " vs " << Cls.size() << std::endl;
+	    exit(1);
+	}
+	return -1;
+    };
+    int NrNontrivialClusters()
+    {
+	if (NrCls == int(Cls.size())) {
+	    int count = 0;
+	    for (const auto& c : Cls) {
+		if ((c->at(0)->RawSeq.Score() > -1) && (c->size() > 2)) {
 		    count++;
 		}
 	    }
@@ -60,7 +83,7 @@ public:
 	if (NrCls == int(Cls.size())) {
 	    int count = 0;
 	    for (const auto& c : Cls) {
-		if (c.at(0).RawSeq.Score() < 0) {
+		if (c->at(0)->RawSeq.Score() < 0) {
 		    count++;
 		}
 	    }

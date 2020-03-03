@@ -83,9 +83,11 @@ void sortMembers(Cluster& v)
 {
     auto it = v.begin();
     it++;
-    std::stable_sort(it, v.end(), [](const ProcSeq a, const ProcSeq b) {
-	return a.RawSeq.Score() > b.RawSeq.Score();
-    });
+    std::stable_sort(
+	it, v.end(),
+	[](const shared_ptr<ProcSeq> a, const shared_ptr<ProcSeq> b) {
+	    return a->RawSeq.Score() > b->RawSeq.Score();
+	});
 }
 
 void WriteClusters(Clusters& cls, const std::string& outDir)
@@ -102,7 +104,7 @@ void WriteClusters(Clusters& cls, const std::string& outDir)
 	std::cerr << "Writing out clusters:" << std::endl;
     }
     for (unsigned i = 0; i < cls.size(); i++) {
-	sortMembers(cls[i]);
+	sortMembers(*cls[i]);
 	CreateFile(
 	    outDir + "/cluster_fastq/isONcluster_" + std::to_string(i) + ".fq",
 	    outfq);
@@ -110,38 +112,37 @@ void WriteClusters(Clusters& cls, const std::string& outDir)
 	    Pbar((float)(i + 1) / float(cls.size()));
 	}
 	int nrReads = 0;
-	for (auto read : cls[i]) {
+	for (auto& read : *cls[i]) {
 	    if (nrReads == 0) {
-		auto& s = read.RawSeq;
+		auto& s = read->RawSeq;
 		if (s.Score() < 0) {
 		    continue;
 		}
-		auto seq = std::string(read.RawSeq.Str());
-		if (read.MatchStrand == -1) {
+		auto seq = std::string(read->RawSeq.Str());
+		if (read->MatchStrand == -1) {
 		    seq = RevComp(seq);
 		}
 		outcons << "@cluster_" << i << " origin=" << s.Name() << ":"
-			<< read.MatchStrand << " length=" << seq.length()
-			<< read.MatchStrand << " size=" << cls[i].size() - 1
-			<< std::endl;
+			<< read->MatchStrand << " length=" << seq.length()
+			<< " size=" << cls[i]->size() - 1 << std::endl;
 		outcons << seq << std::endl;
 		outcons << "+" << std::endl;
 		outcons << s.Qual() << std::endl;
 		nrReads++;
 		continue;
 	    }
-	    outfile << i << "\t" << read.MatchStrand << "\t"
-		    << read.RawSeq.Name();
-	    outfile << "\t" << read.RawSeq.Str().length() << "\t"
-		    << read.RawSeq.Score() << "\t"
-		    << -10 * log10(read.RawSeq.ErrorRate()) << std::endl;
-	    auto& s = read.RawSeq;
-	    auto seq = std::string(read.RawSeq.Str());
-	    if (read.MatchStrand == -1) {
+	    outfile << i << "\t" << read->MatchStrand << "\t"
+		    << read->RawSeq.Name();
+	    outfile << "\t" << read->RawSeq.Str().length() << "\t"
+		    << read->RawSeq.Score() << "\t"
+		    << -10 * log10(read->RawSeq.ErrorRate()) << std::endl;
+	    auto& s = read->RawSeq;
+	    auto seq = std::string(read->RawSeq.Str());
+	    if (read->MatchStrand == -1) {
 		seq = RevComp(seq);
 	    }
 	    outfq << "@" << s.Name() << " cluster=" << i << ":"
-		  << read.MatchStrand << std::endl;
+		  << read->MatchStrand << std::endl;
 	    outfq << seq << std::endl;
 	    outfq << "+" << std::endl;
 	    outfq << s.Qual() << std::endl;

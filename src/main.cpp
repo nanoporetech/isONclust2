@@ -9,6 +9,7 @@
 #include "p_emp_prob.h"
 #include "qualscore.h"
 #include "serialize.h"
+#include "spoa/spoa.hpp"
 #include "util.h"
 
 #define MAIN
@@ -20,7 +21,8 @@ void printBatchInfo(BatchP& b);
 void dumpBatchInfo(BatchP& b, std::string outfile);
 void dumpClusters(BatchP& b, std::string outdir);
 
-UnsignedHash uh;
+extern std::unique_ptr<spoa::AlignmentEngine> SpoaEngine;
+extern UnsignedHash uh;
 
 using namespace std;
 int main(int argc, char* argv[])
@@ -81,6 +83,11 @@ int mainSort(int argc, char* argv[])
 	     << endl;
 	cerr << "Kmer size: " << cmdArgs->KmerSize << endl;
 	cerr << "Window size: " << cmdArgs->WindowSize << endl;
+	cerr << "Consensus period: " << cmdArgs->ConsPeriod << endl;
+	cerr << "Minimum cluster size for consensus: " << cmdArgs->ConsMinSize
+	     << endl;
+	cerr << "Maximum cluster size for consensus: " << cmdArgs->ConsMaxSize
+	     << endl;
 	cerr << "Minimum average quality: " << cmdArgs->MinQual << endl;
 	cerr << "Minimum shared minimizers: " << cmdArgs->MinShared << endl;
 	cerr << "Minimum fraction of top minimizer hit: "
@@ -100,7 +107,7 @@ int mainSort(int argc, char* argv[])
 	bioparser::createParser<bioparser::FastqParser, Seq>(cmdArgs->InFastq);
 
     SequencesP sequences;
-    sequences.reserve(10000000);
+    sequences.reserve(50000000);
     fqParser->parse(sequences, -1, false);
 
     if (VERBOSE) {
@@ -201,6 +208,7 @@ int mainDump(int argc, char* argv[])
 	printBatchInfo(b);
     }
     b->MinDB = MinimizerDB(0, uh);
+    b->ConsGs = ConsGraphs(0);
     CreateOutdir(cmdArgs->OutDir);
     dumpBatchInfo(b, cmdArgs->OutDir + "/batch_info.tsv");
     if (VERBOSE) {
@@ -237,7 +245,7 @@ int mainCluster(int argc, char* argv[])
 	rightBatch = LoadBatch(cmdArgs->RightCereal);
 	cerr << "Loaded input batch from " << cmdArgs->RightCereal << ":"
 	     << std::endl;
-	rightBatch->MinDB = MinimizerDB(MIN_DB_RESERVE);
+	rightBatch->MinDB = MinimizerDB(0, uh);
 	;
 	printBatchInfo(rightBatch);
     }
@@ -249,7 +257,11 @@ int mainCluster(int argc, char* argv[])
 	    cerr << "Resetting input clusters." << endl;
 	}
 	leftBatch->Cls.clear();
+	if (leftBatch->Depth > 0) {
+	    leftBatch->Depth = -leftBatch->Depth;
+	}
 	leftBatch->NrCls = 0;
+	leftBatch->MinDB = MinimizerDB(MIN_DB_RESERVE, uh);
     }
 
     if (leftBatch->SortArgs.Mode != cmdArgs->Mode) {
@@ -260,16 +272,69 @@ int mainCluster(int argc, char* argv[])
 	rightBatch->SortArgs.Mode = cmdArgs->Mode;
     }
 
+    std::int8_t m = 4;
+    std::int8_t n = -8;
+    std::int8_t g = -8;
+    std::int8_t e = -4;
+    std::int8_t q = -20;
+    std::int8_t c = -1;
+
+    std::uint8_t algorithm = cmdArgs->SpoaAlgo;
+    if (VERBOSE) {
+	if (leftBatch->SortArgs.ConsMaxSize > 0) {
+	    cerr << "Generating consensus using spoa algorithm: ";
+	    switch (cmdArgs->SpoaAlgo) {
+		case 0:
+		    cerr << "local";
+		    break;
+		case 1:
+		    cerr << "global";
+		    break;
+		case 2:
+		    cerr << "semi-global";
+		    break;
+	    }
+	    cerr << endl;
+	}
+    }
+    std::uint8_t result = 0;
+
+    SpoaEngine = spoa::createAlignmentEngine(
+	static_cast<spoa::AlignmentType>(algorithm), m, n, g, e, q, c);
+    if (cmdArgs->Mode != None) {
+	leftBatch->SortArgs.Mode = cmdArgs->Mode;
+    }
+    if (VERBOSE) {
+	cerr << "Clustering mode: ";
+	switch (leftBatch->SortArgs.Mode) {
+	    case None:
+		cerr << "Invalid clustering mode: " << int(None) << endl;
+		exit(1);
+		break;
+	    case Sahlin:
+		cerr << "sahlin";
+		break;
+	    case Fast:
+		cerr << "fast";
+		break;
+	    case Furious:
+		cerr << "furious";
+		break;
+	}
+	cerr << endl;
+    }
     ClusterSortedReads(leftBatch, rightBatch, cmdArgs->Quiet);
 
     if (VERBOSE) {
 	cerr << "Finished clustering!" << endl;
 	cerr << "Alignment invocation count: " << AlnInvoked() << " (";
 	cerr << AlnInvokedPerc(rightBatch->Cls.size()) << "%)" << endl;
+	cerr << "Consensus invocation count: " << ConsInvoked() << " (";
+	cerr << ConsInvokedPerc(rightBatch->Cls.size()) << "%)" << endl;
 
 	unsigned count{};
 	for (auto& c : leftBatch->Cls) {
-	    if (c.size() > 1) {
+	    if (c->size() > 1) {
 		count++;
 	    }
 	}
@@ -308,6 +373,7 @@ void printBatchInfo(BatchP& b)
     cerr << "\tNr sequences: " << b->BatchEnd - b->BatchStart + 1 << endl;
     cerr << "\tNr bases: " << b->BatchBases << endl;
     cerr << "\tNr clusters: " << b->NrClusters() << endl;
+    cerr << "\tNr nontrivial clusters: " << b->NrNontrivialClusters() << endl;
     cerr << "\tMinimizers in database: " << b->MinDBSize() << endl;
 }
 
@@ -322,6 +388,7 @@ void dumpBatchInfo(BatchP& b, std::string outfile)
     out << "Depth\t" << b->Depth << endl;
     out << "NrBases\t" << b->BatchBases << endl;
     out << "NrClusters\t" << b->NrClusters() << endl;
+    out << "NrNontrivialCls\t" << b->NrNontrivialClusters() << endl;
     out << "MinDBsize\t" << b->MinDBSize() << endl;
     out.close();
 }
@@ -336,7 +403,7 @@ void dumpClusters(BatchP& b, std::string outdir)
     outInfo << "ClusterId\tSize" << endl;
     unsigned i = 0;
     for (auto& c : b->Cls) {
-	outInfo << i << "\t" << c.size() - 1 << endl;
+	outInfo << i << "\t" << c->size() - 1 << endl;
 	i++;
     }
     outInfo.close();

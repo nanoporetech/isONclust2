@@ -11,8 +11,8 @@
 #include "kmer_index.h"
 #include "tbb/concurrent_vector.h"
 
-#define MIN_DB_RESERVE 100000
-#define MIN_SET_RESERVE 1000
+#define MIN_DB_RESERVE 1000000
+#define MIN_SET_RESERVE 100
 
 class Seq;
 
@@ -40,11 +40,19 @@ struct UnsignedHash {
     }
 };
 
+// From: https://www.variadic.xyz/2018/01/15/hashing-stdpair-and-stdtuple/
+template <typename T>
+inline void hash_combine(std::size_t& seed, const T& val)
+{
+    std::hash<T> hasher;
+    seed ^= hasher(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
 typedef std::pair<int, int> StrandedCluster;
 struct StrandedClsHash {
     inline std::size_t operator()(const StrandedCluster& u) const
     {
-	return std::size_t(int(u.first * u.second));
+	return size_t(int(u.first * u.second));
     }
 };
 
@@ -62,7 +70,7 @@ typedef struct {
 } MinHitPair;
 
 typedef std::vector<MinimizerHit> MinimizerHitVector;
-typedef tbb::concurrent_vector<MinHitPair> RawMinimizerHits;
+typedef std::vector<MinHitPair> RawMinimizerHits;
 typedef std::unordered_map<StrandedCluster, MinimizerHitVector, StrandedClsHash>
     MinimizerHits;
 
@@ -71,8 +79,7 @@ MinimizerHits GetMinimizerHits(const Minimizers& mins,
 			       const MinimizerDB& db);
 void ConsolidateMinimizerHits(const RawMinimizerHits& hits, MinimizerHits& res,
 			      int strand);
-typedef std::vector<std::tuple<unsigned, unsigned, unsigned, std::string, int>>
-    SortedHits;
+typedef std::vector<std::tuple<unsigned, unsigned, unsigned, int>> SortedHits;
 void UpdateMinDB(int best, const Minimizers& oldMins, const Minimizers& newMins,
 		 MinimizerDB& db);
 

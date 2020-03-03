@@ -4,23 +4,23 @@
 
 #include <string>
 
-typedef enum { Sahlin, Fast, Furious } ClsMode;
+typedef enum { Sahlin, Fast, Furious, None } ClsMode;
 
 struct CmdArgs {
     bool Verbose{};
     bool Debug{};
     std::string InFastq;
-    int KmerSize{13};
+    int KmerSize{11};
     int BatchSize{50000};
     int BatchMaxSeq{30000};
-    int WindowSize{20};
+    int WindowSize{15};
     int MinShared{5};
     int ConsMinSize{50};
-    int ConsMaxSize{150};
-    int ConsPeriod{-1};
+    int ConsMaxSize{-150};
+    int ConsPeriod{500};
     double MinQual{7.0};
-    double MappedThreshold{0.7};
-    double AlignedThreshold{0.4};
+    double MappedThreshold{0.65};
+    double AlignedThreshold{0.2};
     double MinFraction{0.8};
     double MinProbNoHits{0.1};
     std::string BatchOutFolder{"isONclust2_batches"};
@@ -28,9 +28,10 @@ struct CmdArgs {
     template <class Archive>
     void serialize(Archive& archive)
     {
-	archive(Verbose, Debug, InFastq, KmerSize, BatchSize, WindowSize,
-		MinShared, ConsMinSize, ConsMaxSize, MinQual, MappedThreshold,
-		AlignedThreshold, MinFraction, MinProbNoHits, BatchOutFolder);
+	archive(Verbose, Debug, InFastq, KmerSize, BatchSize, BatchMaxSeq,
+		WindowSize, MinShared, ConsMinSize, ConsMaxSize, ConsPeriod,
+		MinQual, MappedThreshold, AlignedThreshold, MinFraction,
+		MinProbNoHits, BatchOutFolder, Mode);
     }
 };
 
@@ -44,7 +45,8 @@ struct CmdArgsCluster {
     std::string LeftCereal{""};
     std::string RightCereal{""};
     std::string OutCereal{""};
-    ClsMode Mode{Sahlin};
+    ClsMode Mode{None};
+    int SpoaAlgo{2};
 };
 
 struct CmdArgsDump {

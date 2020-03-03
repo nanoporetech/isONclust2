@@ -31,6 +31,9 @@ double getAlnRatio(const std::string& comp, double e, unsigned slen,
 void SortClustersBySize(Clusters& cls);
 unsigned AlnInvoked();
 double AlnInvokedPerc(int total);
+unsigned ConsInvoked();
+double ConsInvokedPerc(int total);
+int ProcSeqWeight(ProcSeq& s);
 SortedHits SortMinimizerHits(const MinimizerHits& hits, const Clusters& cls);
 
 #endif

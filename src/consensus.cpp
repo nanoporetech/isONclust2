@@ -1,119 +1,117 @@
 #include "consensus.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <random>
 #include <string>
+#include "cluster.h"
 #include "hpc.h"
 #include "util.h"
 
-bool UpdateClusterConsensus(std::string& consName, Cluster& cl, int minSize,
-			    int maxSize, int lastSize, int kmerSize,
-			    int windowSize)
+std::unique_ptr<spoa::AlignmentEngine> SpoaEngine;
+
+void AddSeqToGraph(const std::string& seq, spoa::Graph* graphPtr,
+		   spoa::AlignmentEngine* ae, std::uint32_t weight)
 {
-    int period = 0;
-    int nrReads = int(cl.size());
-    int sampleSize = maxSize;
-    if (nrReads <= minSize) {
-	sampleSize = nrReads - 1;
-	period = 1;
+    auto graph = std::move(std::unique_ptr<spoa::Graph>(graphPtr));
+    auto alignment = ae->align(seq, graph);
+    graph->add_alignment(alignment, seq, weight);
+    graph.release();
+}
+
+void AddSeqToGraphWeight(const std::string& seq,
+			 const std::vector<std::uint32_t>& w,
+			 spoa::Graph* graphPtr, spoa::AlignmentEngine* ae)
+{
+    auto graph = std::move(std::unique_ptr<spoa::Graph>(graphPtr));
+    auto alignment = ae->align(seq, graph);
+    graph->add_alignment(alignment, seq, w);
+    graph.release();
+}
+
+bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
+			    spoa::Graph* leftGraphPtr,
+			    spoa::Graph* rightGraphPtr, ProcSeq* readRep,
+			    int matchStrand, int consMinSize, int consMaxSize,
+			    int kmerSize, int windowSize)
+{
+    auto leftSize = leftGraphPtr->num_sequences();
+    auto rightSize = leftSize;
+    rightSize = 1;
+
+    auto rs = readRep->RawSeq.Str();
+    auto w = readRep->RawSeq.Weights();
+
+    if (matchStrand == -1) {
+	RevComp(rs);
+	std::reverse(w.begin(), w.end());
     }
-    else if (nrReads >= maxSize) {
-	sampleSize = maxSize - 1;
-	period = nrReads / sampleSize;
+
+    if (rightGraphPtr != nullptr) {
+	rightSize = rightGraphPtr->num_sequences();
+    }
+
+    auto clsRep = cl.at(0).get();
+
+    double hpcErr = (clsRep->HpcSeq.ErrorRate() * double(leftSize) +
+		     readRep->HpcSeq.ErrorRate() * double(rightSize)) /
+		    double(leftSize + rightSize);
+
+    double rawErr = (clsRep->RawSeq.ErrorRate() * double(leftSize) +
+		     readRep->RawSeq.ErrorRate() * double(rightSize)) /
+		    double(leftSize + rightSize);
+
+    /*
+    double MAX_ERR = pow(10, -(30 / 10));
+    if ((leftSize + rightSize) > 50) {
+	if (rawErr > MAX_ERR) {
+	    rawErr = MAX_ERR;
+	}
+	if (hpcErr > MAX_ERR) {
+	    hpcErr = MAX_ERR;
+	}
+    }
+    */
+
+    if (rightGraphPtr == nullptr) {
+	AddSeqToGraphWeight(rs, w, leftGraphPtr, SpoaEngine.get());
+	AddSeqToGraph(rs, leftGraphPtr, SpoaEngine.get(), rightSize);
     }
     else {
-	period = 1;
-    }
-    std::vector<std::string> inSeq;
-
-    inSeq.reserve(sampleSize + 1);
-    inSeq.push_back(cl[0].RawSeq.Str());
-
-    double hpcErr = cl[0].HpcSeq.ErrorRate();
-    double rawErr = cl[0].RawSeq.ErrorRate();
-
-    for (int i = 1; i < int(cl.size()); i++) {
-	if (i % period != 0) {
-	    continue;
-	}
-	auto pick = i - (rand() % (1 + period));
-	if (pick < 1) {
-	    pick = 1;
-	}
-
-	auto rs = cl[pick].RawSeq.Str();
-	if (cl[pick].MatchStrand == -1) {
-	    RevComp(rs);
-	}
-
-	inSeq.push_back(rs);
-	hpcErr += cl[pick].HpcSeq.ErrorRate();
-	rawErr += cl[pick].RawSeq.ErrorRate();
-	if (int(inSeq.size()) >= maxSize) {
-	    break;
-	}
+	AddSeqToGraph(rs, leftGraphPtr, SpoaEngine.get(), rightSize);
     }
 
-    hpcErr = hpcErr / double(inSeq.size());
-    ;
-    rawErr = rawErr / double(inSeq.size());
-
-    auto rng = std::default_random_engine{};
-    auto sit = std::begin(inSeq);
-    sit++;
-    if (rand_double() < 0.33) {
-	std::shuffle(sit, std::end(inSeq), rng);
-    }
-
-    std::int8_t m = 10;
-    std::int8_t n = -5;
-    std::int8_t g = -8;
-    std::int8_t e = -2;
-    std::int8_t q = -20;
-    std::int8_t c = -1;
-
-    std::uint8_t algorithm = 2;
-    std::uint8_t result = 0;
-
-    auto alignment_engine = spoa::createAlignmentEngine(
-	static_cast<spoa::AlignmentType>(algorithm), m, n, g, e, q, c);
-
-    auto graph = spoa::createGraph();
-
-    for (const auto& it : inSeq) {
-	auto alignment = alignment_engine->align(it, graph);
-	graph->add_alignment(alignment, it);
-    }
-
-    std::string cons = graph->generate_consensus();
-    auto consLen = cons.length();
-    auto& rep = cl[0];
-
-    if (consLen < rep.RawSeq.Str().length()) {
+    if (int(leftGraphPtr->num_sequences()) < consMinSize) {
 	return false;
     }
 
-    rep.RawSeq.SetStr(cons);
-    rep.RawSeq.SetName(consName);
-    rep.RawSeq.SetErrorRate(rawErr);
-    rep.RawSeq.SetScore(rawErr * double(cons.length()));
+    std::string cons = leftGraphPtr->generate_consensus();
+
+    cons.reserve(cons.size());
+    auto consLen = cons.length();
+    auto& rep = cl[0];
+
+    rep->RawSeq.SetStr(cons);
+    rep->RawSeq.SetName(consName);
+    rep->RawSeq.SetErrorRate(rawErr);
+    rep->RawSeq.SetScore(rawErr * double(cons.length()));
     auto fixedQualHpc = std::to_string(int(-10 * log10(hpcErr)) + 33)[0];
     auto fixedQualRaw = std::to_string(int(-10 * log10(rawErr)) + 33)[0];
-    rep.RawSeq.SetQual(std::string(cons.length(), fixedQualRaw));
+    rep->RawSeq.SetQual(std::string(cons.length(), fixedQualRaw));
 
     Seq hpcSeq;
 
     if (cons.length() > unsigned(2 * kmerSize) ||
 	cons.length() >= unsigned(windowSize)) {
-	hpcSeq = HomopolymerCompressObj(rep.RawSeq);
+	hpcSeq = HomopolymerCompressObj(rep->RawSeq);
 	hpcSeq.SetErrorRate(hpcErr);
 	hpcSeq.SetScore(hpcErr * double(hpcSeq.Str().length()));
-	rep.HpcSeq.SetQual(std::string(hpcSeq.Str().length(), fixedQualHpc));
+	rep->HpcSeq.SetQual(std::string(hpcSeq.Str().length(), fixedQualHpc));
 	if (hpcSeq.Str().length() < unsigned(2 * kmerSize) ||
 	    hpcSeq.Str().length() < unsigned(windowSize)) {
 	    hpcSeq.SetScore(-1.0);
-	    rep.RawSeq.SetScore(-1.0);
-	    rep.RawSeq.SetErrorRate(0.9999);
+	    rep->RawSeq.SetScore(-1.0);
+	    rep->RawSeq.SetErrorRate(0.9999);
 	    hpcSeq.SetErrorRate(0.9999);
 	}
     }
@@ -121,9 +119,20 @@ bool UpdateClusterConsensus(std::string& consName, Cluster& cl, int minSize,
     const auto& kmerSeq = KmerEncodeSeq(hpcSeq.Str(), kmerSize);
     const auto& revKmerSeq = KmerEncodeSeq(RevComp(hpcSeq.Str()), kmerSize);
     hpcSeq.SetErrorRate(hpcErr);
-    rep.Mins = std::move(GetKmerMinimizers(kmerSeq, kmerSize, windowSize));
+    rep.Mins = GetKmerMinimizers(kmerSeq, kmerSize, windowSize);
     rep.RevMins =
 	std::move(GetKmerMinimizers(revKmerSeq, kmerSize, windowSize));
     return true;
+}
+
+std::unique_ptr<spoa::Graph> ConsPurge(spoa::Graph* graphPtr,
+				       spoa::AlignmentEngine* ae, Cluster& cl)
+{
+    auto& repSeq = cl[0]->RawSeq.Str();
+    auto w = graphPtr->num_sequences();
+    graphPtr->clear();
+    auto newGraph = spoa::createGraph();
+    AddSeqToGraph(repSeq, newGraph.get(), ae, w);
+    return newGraph;
 }
 

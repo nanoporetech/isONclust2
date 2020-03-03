@@ -14,7 +14,7 @@ struct CmdArgs* ParseArgsSort(int argc, char* argv[])
 	{"version", no_argument, 0, 'V'},
 	{"verbose", no_argument, 0, 'v'},
 	{"debug", no_argument, 0, 'd'},
-	{"mode", no_argument, 0, 'x'},
+	{"mode", optional_argument, 0, 'x'},
 	{"help", no_argument, 0, 'h'},
 	{"kmer-size", required_argument, 0, 'k'},
 	{"window-size", required_argument, 0, 'w'},
@@ -154,6 +154,8 @@ struct CmdArgsCluster* ParseArgsCluster(int argc, char* argv[])
 	{"version", no_argument, 0, 'V'},
 	{"verbose", no_argument, 0, 'v'},
 	{"debug", no_argument, 0, 'd'},
+	{"spoa-algo", optional_argument, 0, 'A'},
+	{"mode", optional_argument, 0, 'x'},
 	{"help", no_argument, 0, 'h'},
 	{"outfile", required_argument, 0, 'o'},
 	{"left-batch", required_argument, 0, 'l'},
@@ -173,7 +175,7 @@ struct CmdArgsCluster* ParseArgsCluster(int argc, char* argv[])
     std::copy(argv + 1, argv + 1 + argc, sargv);
 
     while (iarg != -1) {
-	iarg = getopt_long(argc, sargv, "Vdhvo:l:r:Qx:", longopts, &index);
+	iarg = getopt_long(argc, sargv, "Vdhvo:l:r:Qx:A:", longopts, &index);
 
 	switch (iarg) {
 	    case 'h':
@@ -197,6 +199,9 @@ struct CmdArgsCluster* ParseArgsCluster(int argc, char* argv[])
 		break;
 	    case 'd':
 		res->Debug = true;
+		break;
+	    case 'A':
+		res->SpoaAlgo = atoi(optarg);
 		break;
 	    case 'x':
 		string m = string(optarg);
@@ -306,8 +311,8 @@ void print_help_sort()
 	    "\t-M --batch-max-seq     Maximum number of sequences per batch "
 	    "(default: "
 	    "3000).\n"
-	    "\t-k --kmer-size         Kmer size (default: 13).\n"
-	    "\t-w --window-size       Window size (default: 20).\n"
+	    "\t-k --kmer-size         Kmer size (default: 11).\n"
+	    "\t-w --window-size       Window size (default: 15).\n"
 	    "\t-m --min-shared        Minimum number of minimizers shared "
 	    "between "
 	    "read and cluster (default: 5).\n"
@@ -325,13 +330,12 @@ void print_help_sort()
 	    "\t-c --max-cons-size     Maximum number of sequences used for "
 	    "consensus (default: "
 	    "150).\n"
-	    "\t-P --cons-period       Recalculate consensus after this many "
-	    "seuqences added (default: "
-	    "-1), recommended: 300.\n"
+	    "\t-P --cons-period       Do not recalculate consensus after this "
+	    "many seuqences added (default: 500).\n"
 	    "\t-r --mapped-threshold  Minmum mapped fraction of read to be "
-	    "\tincluded in cluster (default: 0.7).\n"
+	    "\tincluded in cluster (default: 0.65).\n"
 	    "\t-a --aligned-threshold Minimum aligned fraction of read to "
-	    "be included in cluster (default: 0.4).\n"
+	    "be included in cluster (default: 0.2).\n"
 	    "\t-f --min-fraction      Minimum fraction of minimizers shared "
 	    "compared to best hit, in order to continue mapping (default: "
 	    "0.8).\n"
@@ -357,6 +361,10 @@ void print_help_cluster()
 	    "second \n"
 	    "\t           * fast: use minimizers only\n"
 	    "\t           * furious: use alignment only\n"
+	    "\t-A --spoa-algo  spoa alignment algorithm:\n"
+	    "\t           * 0 (default): local\n"
+	    "\t           * 1 : global\n"
+	    "\t           * 1 : semi-global\n"
 	    "\t-v --verbose           Verbose output.\n"
 	    "\t-Q --quiet             Supress progress bar.\n"
 	    "\t-d --debug             Print debug info.\n"
