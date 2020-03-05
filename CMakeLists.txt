@@ -5,6 +5,7 @@ set(isONclust2_VERSION_MAJOR 2)
 set(isONclust2_VERSION_MINOR 3)
 
 set(CMAKE_MACOSX_RPATH 0)
+#set(CMAKE_SYSTEM_PROCESSOR x86-64)
 
 option(BUILD_SHARED_LIBS OFF)
 
@@ -45,10 +46,8 @@ if(CMAKE_COMPILER_IS_GNUCXX)
         # All warnings
         -Wall
         #-fopt-info-vec-all
-         
         -Wno-unused-local-typedefs
         -Wno-unused-variable
-        
         -Wno-strict-overflow
         -Wno-error=maybe-uninitialized
     )
