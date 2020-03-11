@@ -153,6 +153,7 @@ struct CmdArgsCluster* ParseArgsCluster(int argc, char* argv[])
 	{"quiet", no_argument, 0, 'Q'},
 	{"version", no_argument, 0, 'V'},
 	{"verbose", no_argument, 0, 'v'},
+	{"min-purge", no_argument, 0, 'z'},
 	{"debug", no_argument, 0, 'd'},
 	{"spoa-algo", optional_argument, 0, 'A'},
 	{"mode", optional_argument, 0, 'x'},
@@ -175,7 +176,7 @@ struct CmdArgsCluster* ParseArgsCluster(int argc, char* argv[])
     std::copy(argv + 1, argv + 1 + argc, sargv);
 
     while (iarg != -1) {
-	iarg = getopt_long(argc, sargv, "Vdhvo:l:r:Qx:A:", longopts, &index);
+	iarg = getopt_long(argc, sargv, "Vdhvo:l:r:Qx:A:z", longopts, &index);
 
 	switch (iarg) {
 	    case 'h':
@@ -202,6 +203,9 @@ struct CmdArgsCluster* ParseArgsCluster(int argc, char* argv[])
 		break;
 	    case 'A':
 		res->SpoaAlgo = atoi(optarg);
+		break;
+	    case 'z':
+		res->MinPurge = true;
 		break;
 	    case 'x':
 		string m = string(optarg);

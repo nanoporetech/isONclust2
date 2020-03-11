@@ -344,6 +344,10 @@ int mainCluster(int argc, char* argv[])
     }
     leftBatch->LeftLeaf = cmdArgs->LeftCereal;
     leftBatch->RightLeaf = cmdArgs->RightCereal;
+    if (cmdArgs->MinPurge) {
+	cerr << "Purging minimizer database in output batch!" << endl;
+	leftBatch->MinDB = MinimizerDB(0, uh);
+    }
     SaveBatch(leftBatch, cmdArgs->OutCereal);
     if (VERBOSE) {
 	cerr << "Output batch written to: " << cmdArgs->OutCereal << endl;
