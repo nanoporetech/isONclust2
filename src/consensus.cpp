@@ -33,7 +33,8 @@ void AddSeqToGraphWeight(const std::string& seq,
 
 bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
 			    spoa::Graph* leftGraphPtr,
-			    spoa::Graph* rightGraphPtr, ProcSeq* readRep,
+			    spoa::Graph* rightGraphPtr, std::string& readSeq,
+			    double readRawErr, double readHpcErr,
 			    int matchStrand, int consMinSize, int consMaxSize,
 			    int kmerSize, int windowSize)
 {
@@ -41,12 +42,10 @@ bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
     auto rightSize = leftSize;
     rightSize = 1;
 
-    auto rs = readRep->RawSeq.Str();
-    auto w = readRep->RawSeq.Weights();
+    auto rs = readSeq;
 
     if (matchStrand == -1) {
 	RevComp(rs);
-	std::reverse(w.begin(), w.end());
     }
 
     if (rightGraphPtr != nullptr) {
@@ -55,12 +54,12 @@ bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
 
     auto clsRep = cl.at(0).get();
 
-    double hpcErr = (clsRep->HpcSeq.ErrorRate() * double(leftSize) +
-		     readRep->HpcSeq.ErrorRate() * double(rightSize)) /
+    double hpcErr = (clsRep->HpcSeq->ErrorRate() * double(leftSize) +
+		     readHpcErr * double(rightSize)) /
 		    double(leftSize + rightSize);
 
-    double rawErr = (clsRep->RawSeq.ErrorRate() * double(leftSize) +
-		     readRep->RawSeq.ErrorRate() * double(rightSize)) /
+    double rawErr = (clsRep->RawSeq->ErrorRate() * double(leftSize) +
+		     readRawErr * double(rightSize)) /
 		    double(leftSize + rightSize);
 
     /*
@@ -76,8 +75,7 @@ bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
     */
 
     if (rightGraphPtr == nullptr) {
-	AddSeqToGraphWeight(rs, w, leftGraphPtr, SpoaEngine.get());
-	AddSeqToGraph(rs, leftGraphPtr, SpoaEngine.get(), rightSize);
+	AddSeqToGraph(rs, leftGraphPtr, SpoaEngine.get(), 1);
     }
     else {
 	AddSeqToGraph(rs, leftGraphPtr, SpoaEngine.get(), rightSize);
@@ -93,34 +91,35 @@ bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
     auto consLen = cons.length();
     auto& rep = cl[0];
 
-    rep->RawSeq.SetStr(cons);
-    rep->RawSeq.SetName(consName);
-    rep->RawSeq.SetErrorRate(rawErr);
-    rep->RawSeq.SetScore(rawErr * double(cons.length()));
+    rep->RawSeq->SetStr(cons);
+    rep->RawSeq->SetName(consName);
+    rep->RawSeq->SetErrorRate(rawErr);
+    rep->RawSeq->SetScore(rawErr * double(cons.length()));
     auto fixedQualHpc = std::to_string(int(-10 * log10(hpcErr)) + 33)[0];
     auto fixedQualRaw = std::to_string(int(-10 * log10(rawErr)) + 33)[0];
-    rep->RawSeq.SetQual(std::string(cons.length(), fixedQualRaw));
+    rep->RawSeq->SetQual(std::string(cons.length(), fixedQualRaw));
 
-    Seq hpcSeq;
+    auto hpcSeq = std::unique_ptr<Seq>(new Seq);
 
     if (cons.length() > unsigned(2 * kmerSize) ||
 	cons.length() >= unsigned(windowSize)) {
-	hpcSeq = HomopolymerCompressObj(rep->RawSeq);
-	hpcSeq.SetErrorRate(hpcErr);
-	hpcSeq.SetScore(hpcErr * double(hpcSeq.Str().length()));
-	rep->HpcSeq.SetQual(std::string(hpcSeq.Str().length(), fixedQualHpc));
-	if (hpcSeq.Str().length() < unsigned(2 * kmerSize) ||
-	    hpcSeq.Str().length() < unsigned(windowSize)) {
-	    hpcSeq.SetScore(-1.0);
-	    rep->RawSeq.SetScore(-1.0);
-	    rep->RawSeq.SetErrorRate(0.9999);
-	    hpcSeq.SetErrorRate(0.9999);
+	*hpcSeq = HomopolymerCompressObj(*(rep->RawSeq));
+	hpcSeq->SetErrorRate(hpcErr);
+	hpcSeq->SetScore(hpcErr * double(hpcSeq->Str().length()));
+	rep->HpcSeq->SetQual(std::string(hpcSeq->Str().length(), fixedQualHpc));
+	if (hpcSeq->Str().length() < unsigned(2 * kmerSize) ||
+	    hpcSeq->Str().length() < unsigned(windowSize)) {
+	    hpcSeq->SetScore(-1.0);
+	    rep->RawSeq->SetScore(-1.0);
+	    rep->RawSeq->SetErrorRate(0.9999);
+	    hpcSeq->SetErrorRate(0.9999);
 	}
     }
 
-    const auto& kmerSeq = KmerEncodeSeq(hpcSeq.Str(), kmerSize);
-    const auto& revKmerSeq = KmerEncodeSeq(RevComp(hpcSeq.Str()), kmerSize);
-    hpcSeq.SetErrorRate(hpcErr);
+    const auto& kmerSeq = KmerEncodeSeq(hpcSeq->Str(), kmerSize);
+    const auto& revKmerSeq = KmerEncodeSeq(RevComp(hpcSeq->Str()), kmerSize);
+    hpcSeq->SetErrorRate(hpcErr);
+    rep->HpcSeq = std::move(hpcSeq);
     rep->Mins = GetKmerMinimizers(kmerSeq, kmerSize, windowSize);
     rep->RevMins = GetKmerMinimizers(revKmerSeq, kmerSize, windowSize);
     return true;
@@ -129,7 +128,7 @@ bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
 std::unique_ptr<spoa::Graph> ConsPurge(spoa::Graph* graphPtr,
 				       spoa::AlignmentEngine* ae, Cluster& cl)
 {
-    auto& repSeq = cl[0]->RawSeq.Str();
+    auto& repSeq = cl[0]->RawSeq->Str();
     auto w = graphPtr->num_sequences();
     graphPtr->clear();
     auto newGraph = spoa::createGraph();

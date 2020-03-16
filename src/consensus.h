@@ -12,7 +12,8 @@
 
 bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
 			    spoa::Graph* leftGraphPtr,
-			    spoa::Graph* rightGraphPtr, ProcSeq* readRep,
+			    spoa::Graph* rightGraphPtr, std::string& readSeq,
+			    double readRawErr, double readHpcErr,
 			    int matchStrand, int consMinSize, int consMaxSize,
 			    int kmerSize, int windowSize);
 

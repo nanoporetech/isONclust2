@@ -12,7 +12,8 @@
 
 #define REP 0
 
-void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet);
+void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet,
+			bool seqPurge);
 
 StrandedCluster getBestCluster(const unsigned rightId, BatchP& leftBatch,
 			       BatchP& rightBatch,

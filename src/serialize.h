@@ -47,7 +47,7 @@ public:
 	if (NrCls == int(Cls.size())) {
 	    int count = 0;
 	    for (const auto& c : Cls) {
-		if (c->at(0)->RawSeq.Score() > -1) {
+		if (c->at(0)->RawSeq->Score() > -1) {
 		    count++;
 		}
 	    }
@@ -65,7 +65,7 @@ public:
 	if (NrCls == int(Cls.size())) {
 	    int count = 0;
 	    for (const auto& c : Cls) {
-		if ((c->at(0)->RawSeq.Score() > -1) && (c->size() > 2)) {
+		if ((c->at(0)->RawSeq->Score() > -1) && (c->size() > 2)) {
 		    count++;
 		}
 	    }
@@ -83,7 +83,7 @@ public:
 	if (NrCls == int(Cls.size())) {
 	    int count = 0;
 	    for (const auto& c : Cls) {
-		if (c->at(0)->RawSeq.Score() < 0) {
+		if (c->at(0)->RawSeq->Score() < 0) {
 		    count++;
 		}
 	    }

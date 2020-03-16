@@ -23,7 +23,7 @@ unsigned CONS_INVOKED{0};
 UnsignedHash uh;
 extern std::unique_ptr<spoa::AlignmentEngine> SpoaEngine;
 
-int ProcSeqWeight(ProcSeq& s) { return int(s.RawSeq.MeanQual()); }
+int ProcSeqWeight(ProcSeq& s) { return int(s.RawSeq->MeanQual()); }
 
 void printSortedSizes(Clusters& cls)
 {
@@ -64,7 +64,8 @@ void dumpMinimizers(const Minimizers& mins, const std::string& readId,
     }
 }
 
-void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet)
+void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet,
+			bool seqPurge)
 {
     if (leftBatch->SortArgs != rightBatch->SortArgs) {
 	std::cerr << "The left and right batches have been sorted with "
@@ -115,12 +116,12 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet)
 	auto& read = reads[i]->at(REP);
 	auto& seq = read->RawSeq;
 	const auto& hpcSeq = read->HpcSeq;
-	const auto hpcErr = hpcSeq.ErrorRate();
+	const auto hpcErr = hpcSeq->ErrorRate();
 	if (args.Debug) {
 	    std::cerr << i << "\t";
 	    std::cerr << countNtClusters(cls) << "\t";
 	    std::cerr << minDB.size() << "\t";
-	    std::cerr << seq.Name() << "\t";
+	    std::cerr << seq->Name() << "\t";
 	    printSortedSizes(cls);
 	    std::cerr << std::endl;
 	}
@@ -130,20 +131,20 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet)
 	if (VERBOSE && !quiet) {
 	    Pbar((float)(i + 1) / float(reads.size()));
 	}
-	if (seq.Score() < 0) {
+	if (seq->Score() < 0) {
 	    continue;
 	}
-	if (seq.Str().length() < unsigned(2 * args.KmerSize)) {
-	    seq.SetScore(-1.0);
+	if (seq->Str().length() < unsigned(2 * args.KmerSize)) {
+	    seq->SetScore(-1.0);
 	    continue;
 	}
-	if (hpcSeq.Str().length() < unsigned(2 * args.KmerSize)) {
-	    seq.SetScore(-1.0);
+	if (hpcSeq->Str().length() < unsigned(2 * args.KmerSize)) {
+	    seq->SetScore(-1.0);
 	    continue;
 	}
 
-	if ((-10 * log10(seq.ErrorRate())) <= args.MinQual) {
-	    seq.SetScore(-1.0);
+	if ((-10 * log10(seq->ErrorRate())) <= args.MinQual) {
+	    seq->SetScore(-1.0);
 	    continue;
 	}
 
@@ -155,6 +156,13 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet)
 	    best = stMatch.first;
 	}
 
+	auto startIt = reads[i]->begin();
+	auto readTmp = *startIt;
+
+	auto readSeq = std::string(readTmp->RawSeq->Str());
+	auto readRawErr = readTmp->RawSeq->ErrorRate();
+	auto readHpcErr = readTmp->HpcSeq->ErrorRate();
+
 	if (best == -1) {
 	    auto newId = unsigned(cls.size());
 	    auto nrReads = reads[i]->size();
@@ -162,21 +170,24 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet)
 	    if (nrReads == 1) {
 		auto nrep = new ProcSeq;
 		auto rep = reads[i]->at(0);
-		nrep->RawSeq = rep->RawSeq;
-		nrep->HpcSeq = rep->HpcSeq;
+		nrep->RawSeq = std::unique_ptr<Seq>(new Seq);
+		*(nrep->RawSeq) = *(rep->RawSeq);
+		nrep->HpcSeq = std::unique_ptr<Seq>(new Seq);
+		*(nrep->HpcSeq) = *(rep->HpcSeq);
 		nrep->Mins = rep->Mins;
 		nrep->RevMins = rep->RevMins;
 		nrep->MatchStrand = rep->MatchStrand;
+		nrep->Id = rep->Id;
 		auto repName = "rep_" + std::to_string(leftBatch->BatchNr) +
 			       "_" + std::to_string(newId);
-		nrep->RawSeq.SetName(repName);
-		nrep->HpcSeq.SetName(repName);
+		nrep->RawSeq->SetName(repName);
+		nrep->HpcSeq->SetName(repName);
 		reads[i]->insert(reads[i]->begin(), 1,
 				 std::unique_ptr<ProcSeq>(nrep));
 	    }
 	    leftBatch->ConsGs.emplace_back(spoa::createGraph());
 
-	    AddSeqToGraph(reads[i]->at(0)->RawSeq.Str(),
+	    AddSeqToGraph(reads[i]->at(0)->RawSeq->Str(),
 			  leftBatch->ConsGs[newId].get(), SpoaEngine.get(), 1);
 
 	    cls.emplace_back(reads[i]);
@@ -185,7 +196,7 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet)
 			  << cls[newId]->size()
 			  << " for "
 			     "read: "
-			  << cls[newId]->at(0)->RawSeq.Name() << std::endl;
+			  << cls[newId]->at(0)->RawSeq->Name() << std::endl;
 		std::cerr << "Aborting clustering!" << std::endl;
 		exit(1);
 	    }
@@ -222,10 +233,11 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet)
 		}
 		s->Mins = tmp;
 		s->RevMins = tmp;
+		if (!seqPurge) {
+		    s->RawSeq = nullptr;
+		    s->HpcSeq = nullptr;
+		}
 	    }
-
-	    auto startIt = reads[i]->begin();
-	    auto readRep = *(*startIt);
 
 	    if (reads[i]->size() > 1) {
 		startIt++;
@@ -262,9 +274,9 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet)
 		consMinSize = 2;  // FIXME
 	    }
 	    auto ok = UpdateClusterConsensus(
-		consName, *(cls[best]), consGraphLeft, consGraphRight, &readRep,
-		stMatch.second, consMinSize, consMaxSize, args.KmerSize,
-		args.WindowSize);
+		consName, *(cls[best]), consGraphLeft, consGraphRight, readSeq,
+		readRawErr, readHpcErr, stMatch.second, consMinSize,
+		consMaxSize, args.KmerSize, args.WindowSize);
 
 	    if (ok) {
 		CONS_INVOKED++;
@@ -329,7 +341,7 @@ StrandedCluster getBestClusterMapping(const ProcSeq& read,
 				      const MinSharedMap& sharedMinTab)
 {
     auto& hpcSeq = read.HpcSeq;
-    auto hpcErr = read.HpcSeq.ErrorRate();
+    auto hpcErr = read.HpcSeq->ErrorRate();
     auto& mins = read.Mins;
     auto& revMins = read.RevMins;
     auto& cls = leftBatch->Cls;
@@ -359,12 +371,13 @@ StrandedCluster getBestClusterMapping(const ProcSeq& read,
 	}
 	float mr = 0.0;
 	if (strand == 1) {
-	    mr = getMappedRatio(hpcSeq, cls.at(clId)->at(REP)->HpcSeq, mins,
+	    mr = getMappedRatio(*hpcSeq, *(cls.at(clId)->at(REP)->HpcSeq), mins,
 				hits.at(scl), sharedMinTab, minProbNoHits);
 	}
 	else {
-	    mr = getMappedRatio(hpcSeq, cls.at(clId)->at(REP)->HpcSeq, revMins,
-				hits.at(scl), sharedMinTab, minProbNoHits);
+	    mr = getMappedRatio(*hpcSeq, *(cls.at(clId)->at(REP)->HpcSeq),
+				revMins, hits.at(scl), sharedMinTab,
+				minProbNoHits);
 	}
 	if (mr >= mappedTh) {
 	    return scl;
@@ -439,7 +452,7 @@ StrandedCluster getBestClusterAln(const ProcSeq& read,
 	return NEG;
     }
     auto topHit = std::get<0>(hitOrder[0]);
-    auto& readSeq = read.RawSeq.Str();
+    auto& readSeq = read.RawSeq->Str();
 
     int match = 2;
     int mismatch = -2;
@@ -454,14 +467,14 @@ StrandedCluster getBestClusterAln(const ProcSeq& read,
 	auto strand = std::get<3>(c);
 	auto clId = unsigned(std::get<2>(c));
 	auto& rep = clsLeft[clId]->at(REP)->RawSeq;
-	auto repSeq = std::string(rep.Str());
+	auto repSeq = std::string(rep->Str());
 	if (strand == -1) {
 	    repSeq = RevComp(repSeq);
 	}
-	auto e2 = rep.ErrorRate();
-	auto& clsQual = rep.Qual();
+	auto e2 = rep->ErrorRate();
+	auto& clsQual = rep->Qual();
 
-	auto e1 = read.RawSeq.ErrorRate();
+	auto e1 = read.RawSeq->ErrorRate();
 	int gapOpen = setGapOpen(e1 + e2);
 
 	auto alnRes =
@@ -490,7 +503,7 @@ void dumpSortedHits(const SortedHits& order, const std::string& readId,
     std::cerr << readId << std::endl;
     for (auto& h : order) {
 	std::cerr << "\t" << i << "\t"
-		  << cls[std::get<2>(h)]->at(REP)->RawSeq.Name() << "\t"
+		  << cls[std::get<2>(h)]->at(REP)->RawSeq->Name() << "\t"
 		  << std::get<0>(h) << "\t" << std::get<1>(h) << "\t"
 		  << std::get<2>(h) << std::endl;
 	i++;
@@ -543,7 +556,8 @@ void SortClustersBySize(Clusters& cls)
 	cls.begin(), cls.end(),
 	[](const shared_ptr<Cluster> a, const shared_ptr<Cluster> b) {
 	    if (a->size() == b->size()) {
-		return a->at(REP)->RawSeq.Score() > b->at(REP)->RawSeq.Score();
+		return a->at(REP)->RawSeq->Score() >
+		       b->at(REP)->RawSeq->Score();
 	    }
 	    return a->size() > b->size();
 	});

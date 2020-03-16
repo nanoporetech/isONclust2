@@ -43,6 +43,7 @@ struct CmdArgsCluster {
     bool Quiet{};
     bool Debug{};
     bool MinPurge{};
+    bool SeqPurge{};
     std::string LeftCereal{""};
     std::string RightCereal{""};
     std::string OutCereal{""};
@@ -54,6 +55,7 @@ struct CmdArgsDump {
     bool Verbose{};
     bool Debug{};
     std::string InCereal{""};
+    std::string Index{""};
     std::string OutDir{""};
 };
 

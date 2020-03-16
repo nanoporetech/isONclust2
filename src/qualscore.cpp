@@ -55,7 +55,8 @@ Batch* PrepareSortedBatch(SequencesP& sequences, int batchStart, int batchEnd,
 		}
 		if ((-10 * log10(s->ErrorRate())) <= minQual) {
 		    batch->Cls[i]->emplace_back(std::make_shared<ProcSeq>(
-			ProcSeq{*s, *s, Minimizers{}, Minimizers{}, 0}));
+			ProcSeq{std::move(s), nullptr, Minimizers{},
+				Minimizers{}, 0, s->Name()}));
 		    continue;
 		}
 		if (s->Str().length() > unsigned(2 * kmerSize) ||
@@ -65,9 +66,9 @@ Batch* PrepareSortedBatch(SequencesP& sequences, int batchStart, int batchEnd,
 			hpcSeq->Str().length() < unsigned(windowSize)) {
 			s->SetScore(-1.0);
 			hpcSeq->SetScore(-1.0);
-			batch->Cls[i]->emplace_back(
-			    make_shared<ProcSeq>(ProcSeq{
-				*s, *hpcSeq, Minimizers{}, Minimizers{}, 0}));
+			batch->Cls[i]->emplace_back(make_shared<ProcSeq>(
+			    ProcSeq{std::move(s), std::move(hpcSeq),
+				    Minimizers{}, Minimizers{}, 0, s->Name()}));
 			continue;
 		    }
 		    const auto& kmerSeq =
@@ -81,15 +82,16 @@ Batch* PrepareSortedBatch(SequencesP& sequences, int batchStart, int batchEnd,
 			GetKmerMinimizers(kmerSeq, kmerSize, windowSize);
 		    auto revMins =
 			GetKmerMinimizers(revKmerSeq, kmerSize, windowSize);
-		    auto p = sequences[j].release();
+		    auto id = sequences[j]->Name();
 		    batch->Cls[i]->emplace_back(make_shared<ProcSeq>(
-			ProcSeq{std::move(*p), std::move(*hpcSeq),
-				std::move(mins), std::move(revMins), 1}));
+			ProcSeq{std::move(sequences[j]), std::move(hpcSeq),
+				std::move(mins), std::move(revMins), 1, id}));
 		}
 		else {
 		    s->SetScore(-1.0);
 		    batch->Cls[i]->emplace_back(make_shared<ProcSeq>(
-			ProcSeq{*s, *s, Minimizers{}, Minimizers{}, 0}));
+			ProcSeq{std::move(s), nullptr, Minimizers{},
+				Minimizers{}, 0, s->Name()}));
 		}
 	    }
 	});

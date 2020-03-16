@@ -9,16 +9,19 @@ using namespace std;
 
 extern bool VERBOSE;
 
+typedef std::unique_ptr<Seq> SeqUptr;
+
 typedef struct {
-    Seq RawSeq;
-    Seq HpcSeq;
+    SeqUptr RawSeq;
+    SeqUptr HpcSeq;
     Minimizers Mins;
     Minimizers RevMins;
     int MatchStrand;
+    std::string Id;
     template <class Archive>
     void serialize(Archive& archive)
     {
-	archive(RawSeq, HpcSeq, Mins, RevMins, MatchStrand);
+	archive(RawSeq, HpcSeq, Mins, RevMins, MatchStrand, Id);
     };
 } ProcSeq;
 

@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <iostream>
+#include "serialize.h"
+
 #include "args.h"
 #include "bioparser/bioparser.hpp"
 #include "cluster.h"
@@ -8,7 +10,6 @@
 #include "output.h"
 #include "p_emp_prob.h"
 #include "qualscore.h"
-#include "serialize.h"
 #include "spoa/spoa.hpp"
 #include "util.h"
 
@@ -19,7 +20,7 @@ int mainDump(int argc, char* argv[]);
 int mainInfo(int argc, char* argv[]);
 void printBatchInfo(BatchP& b);
 void dumpBatchInfo(BatchP& b, std::string outfile);
-void dumpClusters(BatchP& b, std::string outdir);
+void dumpClusters(BatchP& b, std::string outdir, SortedIdx* idx);
 
 extern std::unique_ptr<spoa::AlignmentEngine> SpoaEngine;
 extern UnsignedHash uh;
@@ -124,7 +125,9 @@ int mainSort(int argc, char* argv[])
 	cerr << "Finished sorting sequences." << endl;
     }
     string sortedFastq = cmdArgs->BatchOutFolder + "/sorted_reads.fastq";
-    SequencesPToFastq(sequences, sortedFastq);
+    SequencesPToFastq(sequences, sortedFastq,
+		      cmdArgs->BatchOutFolder + "/sorted_reads_idx.tsv",
+		      cmdArgs->BatchOutFolder + "/sorted_reads_idx.cer");
     if (VERBOSE) {
 	cerr << "Sorted sequences written to: " << sortedFastq << endl;
     }
@@ -207,6 +210,10 @@ int mainDump(int argc, char* argv[])
 	cerr << "Loaded batch from " << cmdArgs->InCereal << ":" << std::endl;
 	printBatchInfo(b);
     }
+    auto idx = LoadIndex(cmdArgs->Index);
+    if (VERBOSE) {
+	cerr << "Loaded index from " << cmdArgs->Index << ":" << std::endl;
+    }
     b->MinDB = MinimizerDB(0, uh);
     b->ConsGs = ConsGraphs(0);
     CreateOutdir(cmdArgs->OutDir);
@@ -216,7 +223,7 @@ int mainDump(int argc, char* argv[])
     }
     if (b->Cls.size() > 0) {
 	SortClustersBySize(b->Cls);
-	dumpClusters(b, cmdArgs->OutDir);
+	dumpClusters(b, cmdArgs->OutDir, idx.get());
     }
     if (VERBOSE) {
 	cerr << "Dump complete." << std::endl;
@@ -323,7 +330,8 @@ int mainCluster(int argc, char* argv[])
 	}
 	cerr << endl;
     }
-    ClusterSortedReads(leftBatch, rightBatch, cmdArgs->Quiet);
+    ClusterSortedReads(leftBatch, rightBatch, cmdArgs->Quiet,
+		       cmdArgs->SeqPurge);
 
     if (VERBOSE) {
 	cerr << "Finished clustering!" << endl;
@@ -397,7 +405,7 @@ void dumpBatchInfo(BatchP& b, std::string outfile)
     out.close();
 }
 
-void dumpClusters(BatchP& b, std::string outdir)
+void dumpClusters(BatchP& b, std::string outdir, SortedIdx* idx)
 {
     std::ofstream outInfo;
     std::string outfile = outdir + "/clusters_info.tsv";
@@ -411,5 +419,5 @@ void dumpClusters(BatchP& b, std::string outdir)
 	i++;
     }
     outInfo.close();
-    WriteClusters(b->Cls, outdir);
+    WriteClusters(b->Cls, outdir, idx);
 }
