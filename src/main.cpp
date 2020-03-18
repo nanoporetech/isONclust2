@@ -365,9 +365,13 @@ int mainCluster(int argc, char* argv[])
 
 int mainInfo(int argc, char* argv[])
 {
+    if (argc <= 2) {
+	print_help_info();
+	exit(0);
+    }
     auto target = std::string(argv[2]);
     if (target == "-h") {
-	cerr << "help message" << endl;
+	print_help_info();
 	exit(0);
     }
     auto b = LoadBatch(target);

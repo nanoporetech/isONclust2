@@ -42,7 +42,11 @@ public:
 	}
 	return w;
     }
-    void SetQual(const std::string& qual) { this->qual = qual; }
+    void SetQual(const std::string& qual)
+    {
+	this->qual = qual;
+	this->qual.reserve(qual.length());
+    }
 
     double Score() const { return score; }
 

@@ -110,10 +110,13 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet,
     }
 
     for (unsigned i = 0; i < reads.size(); i++) {
-	if (reads[i]->size() == 0) {
+	if ((reads[i] == nullptr) || (reads[i]->size() == 0)) {
 	    continue;
 	}
 	auto& read = reads[i]->at(REP);
+	if (read == nullptr || read->RawSeq == nullptr) {
+	    continue;
+	}
 	auto& seq = read->RawSeq;
 	const auto& hpcSeq = read->HpcSeq;
 	const auto hpcErr = hpcSeq->ErrorRate();
