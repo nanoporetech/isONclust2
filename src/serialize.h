@@ -23,9 +23,9 @@ typedef std::vector<std::unique_ptr<spoa::Graph>> ConsGraphs;
 class Batch {
 public:
     int BatchNr;
-    int BatchStart;
-    int BatchEnd;
-    unsigned long BatchBases;
+    unsigned long long BatchStart;
+    unsigned long long BatchEnd;
+    unsigned long long BatchBases;
     int TotalReads;
     int NrCls{};
     CmdArgs SortArgs;

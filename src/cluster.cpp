@@ -365,9 +365,9 @@ StrandedCluster getBestClusterMapping(const ProcSeq& read,
 
     for (auto& c : order) {
 	auto& nmHits = std::get<0>(c);
-	auto& clId = std::get<2>(c);
+	auto& clId = std::get<1>(c);
 	const Minimizers& m = mins;
-	auto strand = int(std::get<3>(c));
+	auto strand = int(std::get<2>(c));
 	auto scl = std::make_pair(int(clId), int(strand));
 	if (int(nmHits) < int((double)nrTopHits * minFrac)) {
 	    return NEG;
@@ -467,8 +467,8 @@ StrandedCluster getBestClusterAln(const ProcSeq& read,
 	if (std::get<0>(c) < topHit) {
 	    break;
 	}
-	auto strand = std::get<3>(c);
-	auto clId = unsigned(std::get<2>(c));
+	auto strand = std::get<2>(c);
+	auto clId = unsigned(std::get<1>(c));
 	auto& rep = clsLeft[clId]->at(REP)->RawSeq;
 	auto repSeq = std::string(rep->Str());
 	if (strand == -1) {
@@ -491,7 +491,7 @@ StrandedCluster getBestClusterAln(const ProcSeq& read,
 	auto alnRatio = getAlnRatio(Comp, e1 + e2, readSeq.length(), kmerSize);
 	parasail_traceback_free(tr);
 	if (alnRatio >= alignedTh) {
-	    return std::make_pair(std::get<2>(c), strand);
+	    return std::make_pair(std::get<1>(c), strand);
 	}
     }
 
@@ -555,15 +555,14 @@ StrandedCluster getBestCluster(const unsigned rightId, BatchP& leftBatch,
 
 void SortClustersBySize(Clusters& cls)
 {
-    std::stable_sort(
-	cls.begin(), cls.end(),
-	[](const shared_ptr<Cluster> a, const shared_ptr<Cluster> b) {
-	    if (a->size() == b->size()) {
-		return a->at(REP)->RawSeq->Score() >
-		       b->at(REP)->RawSeq->Score();
-	    }
-	    return a->size() > b->size();
-	});
+    std::sort(cls.begin(), cls.end(),
+	      [](const shared_ptr<Cluster> a, const shared_ptr<Cluster> b) {
+		  if (a->size() == b->size()) {
+		      return a->at(REP)->RawSeq->Score() >
+			     b->at(REP)->RawSeq->Score();
+		  }
+		  return a->size() > b->size();
+	      });
 }
 
 unsigned AlnInvoked() { return ALN_INVOKED; }
@@ -601,16 +600,11 @@ void ConsolidateMinimizerHits(const RawMinimizerHits& hits, MinimizerHits& res,
     }
 }
 
-bool hitsSortUtil(const std::tuple<unsigned, unsigned, unsigned, int>& a,
-		  const std::tuple<unsigned, unsigned, unsigned, int>& b)
+bool hitsSortUtil(const std::tuple<unsigned, unsigned, int>& a,
+		  const std::tuple<unsigned, unsigned, int>& b)
 {
     auto sa = std::get<0>(a);
     auto sb = std::get<0>(b);
-    if (sa == sb) {
-	auto pa = std::get<1>(a);
-	auto pb = std::get<1>(b);
-	return pa > pb;
-    }
     return sa > sb;
 }
 
@@ -619,11 +613,11 @@ SortedHits SortMinimizerHits(const MinimizerHits& hits, const Clusters& cls)
     SortedHits sorted;
     sorted.reserve(hits.size());
     for (auto& hit : hits) {
-	sorted.push_back(
-	    std::make_tuple(hit.second.size(), sumPositions(hit.second),
-			    unsigned(hit.first.first), int(hit.first.second)));
+	sorted.push_back(std::make_tuple(hit.second.size(),
+					 unsigned(hit.first.first),
+					 int(hit.first.second)));
     }
-    std::stable_sort(sorted.begin(), sorted.end(), hitsSortUtil);
+    std::sort(sorted.begin(), sorted.end(), hitsSortUtil);
     return sorted;
 }
 

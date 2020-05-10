@@ -15,7 +15,7 @@
 typedef struct {
 public:
     std::string Fastq{};
-    std::unordered_map<std::string, unsigned> IdxMap;
+    std::unordered_map<std::string, unsigned long long int> IdxMap;
     template <class Archive>
     void serialize(Archive& archive)
     {

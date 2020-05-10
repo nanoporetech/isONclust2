@@ -35,7 +35,7 @@ void SequencesPToFastq(SequencesP& sequences, const std::string& outFastq,
     CreateFile(outFastq, outfile);
     CreateFile(indexTab, outTsv);
     outTsv << "Id\tPos" << std::endl;
-    unsigned seeker = 0;
+    unsigned long long int seeker = 0;
     SortedIdx idx;
     idx.Fastq = outFastq;
 
@@ -176,23 +176,10 @@ void WriteClusters(Clusters& cls, const std::string& outDir, SortedIdx* idx)
 	    }
 	    outfile << i << "\t" << read->MatchStrand << "\t" << read->Id
 		    << std::endl;
-	    /*
-	    outfile << "\t" << read->RawSeq->Str().length() << "\t"
-		    << read->RawSeq->Score() << "\t"
-		    << -10 * log10(read->RawSeq->ErrorRate()) << std::endl;
-	    auto& s = read->RawSeq;
-	    auto seq = std::string(read->RawSeq->Str());
-	    if (read->MatchStrand == -1) {
-		seq = RevComp(seq);
-	    }
-	    outfq << "@" << s->Name() << " cluster=" << i << ":"
-		  << read->MatchStrand << std::endl;
-	    outfq << seq << std::endl;
-	    outfq << "+" << std::endl;
-	    outfq << s->Qual() << std::endl;
-	    */
+
 	    auto rec = RecordAtPos(idx->IdxMap[read->Id], infq);
 	    if (read->MatchStrand == -1) {
+		// std::cerr << read->Id << std::endl;
 		rec[1] = RevComp(rec[1]);
 		reverse(rec[3].begin(), rec[3].end());
 	    }

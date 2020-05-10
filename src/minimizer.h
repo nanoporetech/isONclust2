@@ -79,7 +79,7 @@ MinimizerHits GetMinimizerHits(const Minimizers& mins,
 			       const MinimizerDB& db);
 void ConsolidateMinimizerHits(const RawMinimizerHits& hits, MinimizerHits& res,
 			      int strand);
-typedef std::vector<std::tuple<unsigned, unsigned, unsigned, int>> SortedHits;
+typedef std::vector<std::tuple<unsigned, unsigned, int>> SortedHits;
 void UpdateMinDB(int best, const Minimizers& oldMins, const Minimizers& newMins,
 		 MinimizerDB& db);
 
