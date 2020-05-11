@@ -118,7 +118,7 @@ TEST(MinMatchTest, MinMatchTest)
     Clusters cls;
     auto hitOrder = SortMinimizerHits(hits, cls);
 
-    EXPECT_EQ(std::get<0>(hitOrder[0]), 14);
+    EXPECT_EQ(hitOrder[0]->Size, 14);
 
     auto msm = InitMinSharedMap(kmerSize, windowSize);
     auto qt = InitQualTab();

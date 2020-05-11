@@ -358,16 +358,16 @@ StrandedCluster getBestClusterMapping(const ProcSeq& read,
 	return NEG;
     }
 
-    auto nrTopHits = std::get<0>(order[0]);
+    auto nrTopHits = order[0]->Size;
     if (nrTopHits < (unsigned)minShared) {
 	return NEG;
     }
 
     for (auto& c : order) {
-	auto& nmHits = std::get<0>(c);
-	auto& clId = std::get<1>(c);
+	auto& nmHits = c->Size;
+	auto& clId = c->Cls;
 	const Minimizers& m = mins;
-	auto strand = int(std::get<2>(c));
+	auto strand = c->Strand;
 	auto scl = std::make_pair(int(clId), int(strand));
 	if (int(nmHits) < int((double)nrTopHits * minFrac)) {
 	    return NEG;
@@ -454,7 +454,7 @@ StrandedCluster getBestClusterAln(const ProcSeq& read,
     if (hitOrder.size() == 0) {
 	return NEG;
     }
-    auto topHit = std::get<0>(hitOrder[0]);
+    auto topHit = hitOrder[0]->Size;
     auto& readSeq = read.RawSeq->Str();
 
     int match = 2;
@@ -464,11 +464,11 @@ StrandedCluster getBestClusterAln(const ProcSeq& read,
     auto user_matrix = parasail_matrix_create("ACGT", match, mismatch);
 
     for (auto& c : hitOrder) {
-	if (std::get<0>(c) < topHit) {
+	if (c->Size < topHit) {
 	    break;
 	}
-	auto strand = std::get<2>(c);
-	auto clId = unsigned(std::get<1>(c));
+	auto strand = c->Strand;
+	auto clId = unsigned(c->Cls);
 	auto& rep = clsLeft[clId]->at(REP)->RawSeq;
 	auto repSeq = std::string(rep->Str());
 	if (strand == -1) {
@@ -491,7 +491,7 @@ StrandedCluster getBestClusterAln(const ProcSeq& read,
 	auto alnRatio = getAlnRatio(Comp, e1 + e2, readSeq.length(), kmerSize);
 	parasail_traceback_free(tr);
 	if (alnRatio >= alignedTh) {
-	    return std::make_pair(std::get<1>(c), strand);
+	    return std::make_pair(c->Cls, strand);
 	}
     }
 
@@ -505,10 +505,9 @@ void dumpSortedHits(const SortedHits& order, const std::string& readId,
     unsigned i = 0;
     std::cerr << readId << std::endl;
     for (auto& h : order) {
-	std::cerr << "\t" << i << "\t"
-		  << cls[std::get<2>(h)]->at(REP)->RawSeq->Name() << "\t"
-		  << std::get<0>(h) << "\t" << std::get<1>(h) << "\t"
-		  << std::get<2>(h) << std::endl;
+	std::cerr << "\t" << i << "\t" << cls[h->Cls]->at(REP)->RawSeq->Name()
+		  << "\t" << h->Size << "\t" << h->Cls << "\t" << h->Strand
+		  << std::endl;
 	i++;
     }
 }
@@ -536,7 +535,7 @@ StrandedCluster getBestCluster(const unsigned rightId, BatchP& leftBatch,
 	}
     }
 
-    auto shared = std::get<0>(hitOrder[0]);
+    auto shared = hitOrder[0]->Size;
     if (shared < unsigned(minShared)) {
 	return NEG;
     }
@@ -600,12 +599,9 @@ void ConsolidateMinimizerHits(const RawMinimizerHits& hits, MinimizerHits& res,
     }
 }
 
-bool hitsSortUtil(const std::tuple<unsigned, unsigned, int>& a,
-		  const std::tuple<unsigned, unsigned, int>& b)
+bool hitsSortUtil(const SortedHitP& a, const SortedHitP& b)
 {
-    auto sa = std::get<0>(a);
-    auto sb = std::get<0>(b);
-    return sa > sb;
+    return a->Size > b->Size;
 }
 
 SortedHits SortMinimizerHits(const MinimizerHits& hits, const Clusters& cls)
@@ -613,9 +609,12 @@ SortedHits SortMinimizerHits(const MinimizerHits& hits, const Clusters& cls)
     SortedHits sorted;
     sorted.reserve(hits.size());
     for (auto& hit : hits) {
-	sorted.push_back(std::make_tuple(hit.second.size(),
-					 unsigned(hit.first.first),
-					 int(hit.first.second)));
+	auto tmP = new SortedHit;
+	tmP->Size = hit.second.size();
+	tmP->Cls = hit.first.first;
+	tmP->Strand = hit.first.second;
+	std::unique_ptr<SortedHit> StmP(tmP);
+	sorted.push_back(std::move(StmP));
     }
     std::sort(sorted.begin(), sorted.end(), hitsSortUtil);
     return sorted;
