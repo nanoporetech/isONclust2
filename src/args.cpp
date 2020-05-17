@@ -24,6 +24,7 @@ struct CmdArgs* ParseArgsSort(int argc, char* argv[])
 	{"min-fraction", required_argument, 0, 'f'},
 	{"min-prob-no-hits", required_argument, 0, 'p'},
 	{"min-qual", required_argument, 0, 'q'},
+	{"min-cls-size", required_argument, 0, 'F'},
 	{"low-cons-size", required_argument, 0, 'g'},
 	{"max-cons-size", required_argument, 0, 'c'},
 	{"cons-period", required_argument, 0, 'P'},
@@ -45,8 +46,9 @@ struct CmdArgs* ParseArgsSort(int argc, char* argv[])
     std::copy(argv + 1, argv + 1 + argc, sargv);
 
     while (iarg != -1) {
-	iarg = getopt_long(
-	    argc, sargv, "k:w:dhvo:m:r:a:f:p:q:B:x:g:c:M:P:", longopts, &index);
+	iarg = getopt_long(argc, sargv,
+			   "k:w:dhvo:m:r:a:f:p:q:B:x:g:c:M:P:F:", longopts,
+			   &index);
 
 	switch (iarg) {
 	    case 'h':
@@ -91,6 +93,9 @@ struct CmdArgs* ParseArgsSort(int argc, char* argv[])
 		break;
 	    case 'c':
 		res->ConsMaxSize = atoi(optarg);
+		break;
+	    case 'F':
+		res->MinClsSize = atoi(optarg);
 		break;
 	    case 'o':
 		res->BatchOutFolder = optarg;
@@ -154,6 +159,7 @@ struct CmdArgsCluster* ParseArgsCluster(int argc, char* argv[])
 	{"version", no_argument, 0, 'V'},
 	{"verbose", no_argument, 0, 'v'},
 	{"min-purge", no_argument, 0, 'z'},
+	{"min-cls-size", required_argument, 0, 'F'},
 	{"keep-seq", no_argument, 0, 'j'},
 	{"debug", no_argument, 0, 'd'},
 	{"spoa-algo", optional_argument, 0, 'A'},
@@ -177,7 +183,8 @@ struct CmdArgsCluster* ParseArgsCluster(int argc, char* argv[])
     std::copy(argv + 1, argv + 1 + argc, sargv);
 
     while (iarg != -1) {
-	iarg = getopt_long(argc, sargv, "Vdhvo:l:r:Qx:A:zj", longopts, &index);
+	iarg =
+	    getopt_long(argc, sargv, "Vdhvo:l:r:Qx:A:zjF:", longopts, &index);
 
 	switch (iarg) {
 	    case 'h':
@@ -210,6 +217,9 @@ struct CmdArgsCluster* ParseArgsCluster(int argc, char* argv[])
 		break;
 	    case 'j':
 		res->SeqPurge = true;
+		break;
+	    case 'F':
+		res->MinClsSize = atoi(optarg);
 		break;
 	    case 'x':
 		string m = string(optarg);
@@ -354,6 +364,8 @@ void print_help_sort()
 	    "\t-p --min-prob-no-hits  Minimum probability for i consecutive "
 	    "\tminimizers to be different between read and representative "
 	    "(default: 0.1)\n"
+	    "\t-F --min-cls-size     Skip clusters smaller than this in the "
+	    "left batch (default: 3)."
 	    "\t-o --outfolder         Output folder (default: "
 	    "\t./isONclust2_batches).\n"
 	    "\t-h --help              Print help.\n"
@@ -381,6 +393,8 @@ void print_help_cluster()
 	    "batch.\n"
 	    "\t-j --keep-seq         Do not purge non-representative "
 	    "sequences from output batches.\n"
+	    "\t-F --min-cls-size     Skip clusters smaller than this in the "
+	    "left batch."
 	    "\t-v --verbose           Verbose output.\n"
 	    "\t-Q --quiet             Supress progress bar.\n"
 	    "\t-d --debug             Print debug info.\n"

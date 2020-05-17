@@ -18,6 +18,7 @@ struct CmdArgs {
     int ConsMinSize{50};
     int ConsMaxSize{-150};
     int ConsPeriod{500};
+    int MinClsSize{3};
     double MinQual{7.0};
     double MappedThreshold{0.65};
     double AlignedThreshold{0.2};
@@ -30,8 +31,8 @@ struct CmdArgs {
     {
 	archive(Verbose, Debug, InFastq, KmerSize, BatchSize, BatchMaxSeq,
 		WindowSize, MinShared, ConsMinSize, ConsMaxSize, ConsPeriod,
-		MinQual, MappedThreshold, AlignedThreshold, MinFraction,
-		MinProbNoHits, BatchOutFolder, Mode);
+		MinClsSize, MinQual, MappedThreshold, AlignedThreshold,
+		MinFraction, MinProbNoHits, BatchOutFolder, Mode);
     }
 };
 
@@ -44,6 +45,7 @@ struct CmdArgsCluster {
     bool Debug{};
     bool MinPurge{};
     bool SeqPurge{};
+    int MinClsSize{-1};
     std::string LeftCereal{""};
     std::string RightCereal{""};
     std::string OutCereal{""};

@@ -97,6 +97,8 @@ int mainSort(int argc, char* argv[])
 	cerr << "Alignment threshold: " << cmdArgs->AlignedThreshold << endl;
 	cerr << "Minimum probability no hit: " << cmdArgs->MinProbNoHits
 	     << endl;
+	cerr << "Minimum cluster size in left batches: " << cmdArgs->MinClsSize
+	     << endl;
 	cerr << "Debug output: " << (cmdArgs->Debug ? "on" : "off") << endl;
     }
 
@@ -310,6 +312,9 @@ int mainCluster(int argc, char* argv[])
 	static_cast<spoa::AlignmentType>(algorithm), m, n, g, e, q, c);
     if (cmdArgs->Mode != None) {
 	leftBatch->SortArgs.Mode = cmdArgs->Mode;
+    }
+    if (cmdArgs->MinClsSize > 0) {
+	leftBatch->SortArgs.MinClsSize = cmdArgs->MinClsSize;
     }
     if (VERBOSE) {
 	cerr << "Clustering mode: ";

@@ -109,8 +109,16 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet,
 	    << std::endl;
     }
 
+    unsigned sizeFiltered = 0;
+    auto minClsSize = leftBatch->SortArgs.MinClsSize;
+
     for (unsigned i = 0; i < reads.size(); i++) {
 	if ((reads[i] == nullptr) || (reads[i]->size() == 0)) {
+	    continue;
+	}
+	if ((rightBatch->Depth > 0) && (minClsSize > 1) &&
+	    (int(reads[i]->size() - 1) < minClsSize)) {
+	    sizeFiltered++;
 	    continue;
 	}
 	auto& read = reads[i]->at(REP);
@@ -300,6 +308,11 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet,
     }
     if (VERBOSE) {
 	std::cout << std::endl;
+	if (minClsSize > 1) {
+	    std::cerr << "Filtered out " << sizeFiltered
+		      << " input clusters smaller than " << minClsSize << "."
+		      << std::endl;
+	}
     }
     leftBatch->Depth++;
     leftBatch->BatchEnd = rightBatch->BatchEnd;
