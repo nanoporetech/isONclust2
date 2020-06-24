@@ -207,19 +207,22 @@ int mainDump(int argc, char* argv[])
 {
     auto cmdArgs = ParseArgsDump(argc, argv);
     VERBOSE = cmdArgs->Verbose;
+    if (VERBOSE) {
+	cerr << "Loading batch..." << std::endl;
+    }
     auto b = LoadBatch(cmdArgs->InCereal);
     if (VERBOSE) {
 	cerr << "Loaded batch from " << cmdArgs->InCereal << ":" << std::endl;
 	printBatchInfo(b);
     }
-    auto idx = LoadIndex(cmdArgs->Index);
-    if (VERBOSE) {
-	cerr << "Loaded index from " << cmdArgs->Index << ":" << std::endl;
-    }
     b->MinDB = MinimizerDB(0, uh);
     b->ConsGs = ConsGraphs(0);
     CreateOutdir(cmdArgs->OutDir);
     dumpBatchInfo(b, cmdArgs->OutDir + "/batch_info.tsv");
+    auto idx = LoadIndex(cmdArgs->Index);
+    if (VERBOSE) {
+	cerr << "Loaded index from " << cmdArgs->Index << ":" << std::endl;
+    }
     if (VERBOSE) {
 	cerr << "Sorting clusters by size." << std::endl;
     }
@@ -421,12 +424,20 @@ void dumpClusters(BatchP& b, std::string outdir, SortedIdx* idx)
     std::string clsdir = outdir + "/cluster_fastq";
     CreateFile(outfile, outInfo);
     CreateOutdir(clsdir);
+    IdMap idToCls;
     outInfo << "ClusterId\tSize" << endl;
     unsigned i = 0;
     for (auto& c : b->Cls) {
 	outInfo << i << "\t" << c->size() - 1 << endl;
+	for (auto& cc : (*c)) {
+	    auto info = std::unique_ptr<IdInfo>(new IdInfo);
+	    info->Cls = i;
+	    info->Strand = cc->MatchStrand;
+	    idToCls[cc->Id] = std::move(info);
+	}
 	i++;
     }
     outInfo.close();
-    WriteClusters(b->Cls, outdir, idx);
+    b->MinDB = MinimizerDB(0);
+    WriteClusters(b, outdir, idx, idToCls);
 }

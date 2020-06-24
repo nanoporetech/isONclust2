@@ -15,11 +15,10 @@
 typedef struct {
 public:
     std::string Fastq{};
-    std::unordered_map<std::string, unsigned long long int> IdxMap;
     template <class Archive>
     void serialize(Archive& archive)
     {
-	archive(Fastq, IdxMap);
+	archive(Fastq);
     };
 } SortedIdx;
 
@@ -31,7 +30,24 @@ unsigned WriteFastqRecord(const Seq& s, std::ofstream& out);
 void CreateFile(const std::string& outFile, std::ofstream& outfile);
 void OpenFile(const std::string& inFile, std::ofstream& infile);
 void WriteScores(SequencesP& sequences, const std::string& outFile);
-void WriteClusters(Clusters& cls, const std::string& outFile, SortedIdx* idx);
+typedef struct {
+    unsigned Cls;
+    int Strand;
+} IdInfo;
+typedef std::unordered_map<std::string, std::unique_ptr<IdInfo>> IdMap;
+
+typedef struct {
+    std::string Id;
+    std::string Header;
+    std::string Seq;
+    std::string Plus;
+    std::string Qual;
+} FqRec;
+
+typedef std::unique_ptr<FqRec> FqRecP;
+typedef std::unordered_map<unsigned, std::vector<FqRecP>> SeqCache;
+void WriteClusters(BatchP& cls, const std::string& outFile, SortedIdx* idx,
+		   IdMap& idToCls);
 std::unique_ptr<SortedIdx> LoadIndex(std::string inf);
 
 #endif

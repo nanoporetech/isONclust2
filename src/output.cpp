@@ -40,7 +40,9 @@ void SequencesPToFastq(SequencesP& sequences, const std::string& outFastq,
     idx.Fastq = outFastq;
 
     for (auto& s : sequences) {
-	idx.IdxMap[s->Name()] = seeker;
+	if (s->Score() < 0) {
+	    continue;
+	}
 	outTsv << s->Name() << "\t" << seeker << std::endl;
 	seeker += WriteFastqRecord(*s, outfile);
     }
@@ -121,18 +123,33 @@ void CreateOutdir(const std::string& outDir)
     }
 }
 
-std::vector<std::string> RecordAtPos(unsigned pos, std::ifstream& infq)
+typedef std::unique_ptr<FqRec> FqRecP;
+
+FqRecP GetRecords(std::ifstream& infq)
 {
-    std::vector<std::string> res(4);
-    infq.seekg(pos, infq.beg);
-    std::getline(infq, res[0]);
-    std::getline(infq, res[1]);
-    std::getline(infq, res[2]);
-    std::getline(infq, res[3]);
-    return res;
+    FqRecP rec(new FqRec);
+    std::getline(infq, rec->Header);
+    if (infq.eof()) {
+	return nullptr;
+    }
+    std::getline(infq, rec->Seq);
+    std::getline(infq, rec->Plus);
+    std::getline(infq, rec->Qual);
+    auto ididx = rec->Header.find(" ");
+    rec->Id = rec->Header.substr(1, ididx);
+    return std::move(rec);
 }
 
-void WriteClusters(Clusters& cls, const std::string& outDir, SortedIdx* idx)
+void WriteFqRec(FqRecP& r, std::ofstream& fh)
+{
+    fh << r->Header << std::endl;
+    fh << r->Seq << std::endl;
+    fh << r->Plus << std::endl;
+    fh << r->Qual << std::endl;
+}
+
+void WriteClusters(BatchP& b, const std::string& outDir, SortedIdx* idx,
+		   IdMap& idToCls)
 {
     std::ofstream outfile;
     std::ofstream outfq;
@@ -143,57 +160,118 @@ void WriteClusters(Clusters& cls, const std::string& outDir, SortedIdx* idx)
     std::string outCons = outDir + "/cluster_cons.fq";
     CreateFile(outFile, outfile);
     CreateFile(outCons, outcons);
-    outfile << "ClusterId\tStrand\tRead\tLength\tScore\tMeanQual" << std::endl;
+
+    outfile << "ClusterId\tStrand\tRead" << std::endl;
     if (VERBOSE) {
-	std::cerr << "Writing out clusters:" << std::endl;
+	std::cerr << "Writing out cluster information:" << std::endl;
     }
+
+    auto& cls = b->Cls;
     for (unsigned i = 0; i < cls.size(); i++) {
-	CreateFile(
-	    outDir + "/cluster_fastq/isONcluster_" + std::to_string(i) + ".fq",
-	    outfq);
 	if (VERBOSE) {
 	    Pbar((float)(i + 1) / float(cls.size()));
 	}
-	int nrReads = 0;
-	for (auto& read : *cls[i]) {
-	    if (nrReads == 0) {
-		auto& s = read->RawSeq;
-		if (s->Score() < 0) {
-		    continue;
-		}
-		auto seq = std::string(read->RawSeq->Str());
-		if (read->MatchStrand == -1) {
-		    seq = RevComp(seq);
-		}
-		outcons << "@cluster_" << i << " origin=" << s->Name() << ":"
-			<< read->MatchStrand << " length=" << seq.length()
-			<< " size=" << cls[i]->size() - 1 << std::endl;
-		outcons << seq << std::endl;
-		outcons << "+" << std::endl;
-		outcons << s->Qual() << std::endl;  // FIXME
-		nrReads++;
-		continue;
-	    }
-	    outfile << i << "\t" << read->MatchStrand << "\t" << read->Id
-		    << std::endl;
-
-	    auto rec = RecordAtPos(idx->IdxMap[read->Id], infq);
-	    if (read->MatchStrand == -1) {
-		// std::cerr << read->Id << std::endl;
-		rec[1] = RevComp(rec[1]);
-		reverse(rec[3].begin(), rec[3].end());
-	    }
-	    stringstream ss;
-	    ss << rec[0];
-	    ss << " cluster=" << i << ":" << read->MatchStrand << std::endl;
-	    outfq << ss.str();
-	    outfq << rec[1] << std::endl;
-	    outfq << rec[2] << std::endl;
-	    outfq << rec[3] << std::endl;
+	auto reads = cls[i];
+	if (reads == nullptr) {
+	    std::cerr << "Null pointer instead of cluster rep at index: " << i
+		      << std::endl;
+	    exit(1);
 	}
-	outfq.close();
+	auto read = reads->at(0);
+	if (read->RawSeq == nullptr) {
+	    std::cerr << "Null pointer instead of cluster rep sequence "
+			 "at index: "
+		      << i << std::endl;
+	    exit(1);
+	}
+	auto& s = read->RawSeq;
+	if (s->Score() < 0) {
+	    continue;
+	}
+	auto seq = std::string(read->RawSeq->Str());
+	auto qual = std::string(read->RawSeq->Qual());
+	if (read->MatchStrand == -1) {
+	    seq = RevComp(seq);
+	    std::reverse(qual.begin(), qual.end());
+	}
+	outcons << "@cluster_" << i << " origin=" << s->Name() << ":"
+		<< read->MatchStrand << " length=" << seq.length()
+		<< " size=" << cls[i]->size() - 1 << std::endl;
+	outcons << seq << std::endl;
+	outcons << "+" << std::endl;
+	outcons << s->Qual() << std::endl;  // FIXME
     }
-    std::cerr << std::endl;
+    outcons.close();
+    if (VERBOSE) {
+	std::cerr << std::endl;
+    }
+    b->Cls = Clusters();
+
+    SeqCache seqCache;
+
+    if (VERBOSE) {
+	std::cerr << "Loading fastq records:" << std::endl;
+    }
+    unsigned j = 0;
+    unsigned jj = 0;
+    for (auto rec = GetRecords(infq); rec != nullptr; rec = GetRecords(infq)) {
+	if (VERBOSE) {
+	    auto now = ((float)(j + 1) / float(idToCls.size()));
+	    if (unsigned(now) > jj || j == 0) {
+		Pbar(now);
+		jj = unsigned(now);
+	    }
+	}
+	auto readId = rec->Header.substr(1, rec->Header.size());
+	auto v = idToCls.find(readId);
+	if (v == idToCls.end()) {
+	    continue;
+	}
+
+	if (v->second->Strand == -1) {
+	    rec->Seq = RevComp(rec->Seq);
+	    std::reverse(rec->Qual.begin(), rec->Qual.end());
+	}
+
+	outfile << v->second->Cls << "\t" << v->second->Strand << "\t" << readId
+		<< std::endl;
+	seqCache[v->second->Cls].push_back(std::move(rec));
+	j++;
+    }
     outfile.close();
+    if (VERBOSE) {
+	std::cerr << std::endl;
+    }
+    idToCls.clear();
+
+    if (VERBOSE) {
+	std::cerr << "Writing out cluster fastqs:" << std::endl;
+    }
+
+    unsigned k = 0;
+    unsigned kk = 0;
+    for (auto& c : seqCache) {
+	if (VERBOSE) {
+	    auto now = ((float)(k + 1) / float(seqCache.size()));
+	    if (unsigned(now) > kk || k == 0 || kk == 0) {
+		Pbar(now);
+		kk = unsigned(now);
+	    }
+	}
+	std::ofstream outfq;
+	CreateFile(outDir + "/cluster_fastq/isONcluster_" +
+		       std::to_string(c.first) + ".fq",
+		   outfq);
+	for (auto& r : c.second) {
+	    WriteFqRec(r, outfq);
+	}
+	outfq.flush();
+	outfq.close();
+	k++;
+    }
+
+    if (VERBOSE) {
+	std::cerr << std::endl;
+    }
 }
 
