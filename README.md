@@ -31,6 +31,8 @@ The best way to install `isONclust2` is from bioconda:
 
 ## Usage
 
+### Help message
+
 ```
 isONclust2 version: v2.3-a0e5b32
 Available subcommands: sort, cluster, dump, info, help, version
@@ -94,6 +96,22 @@ info:
 help - print help message
 
 version - print version
+```
+
+### A minimal example
+
+```bash
+# sort reads and write out batches:
+isONclust2 sort -B 50000 -v ens500.fq
+# initial clustering of individual batches:
+isONclust2 cluster -v -l isONclust2_batches/sorted/batches/isONbatch_0.cer -o b0.cer
+isONclust2 cluster -v -l isONclust2_batches/sorted/batches/isONbatch_1.cer -o b1.cer
+isONclust2 cluster -v -l isONclust2_batches/sorted/batches/isONbatch_2.cer -o b1.cer
+# merge cluster batches:
+isONclust2 cluster -v -l b0.cer -r b1.cer -o b_0_1.cer
+isONclust2 cluster -v -l b_0_1.cer -r b2.cer -o b_0_1_2.cer
+# dump final results:
+isONclust2 dump -v -i sorted/sorted_reads_idx.cer -o results b_0_1_2.cer
 ```
 
 Help
