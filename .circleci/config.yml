@@ -1,0 +1,65 @@
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      - image: continuumio/miniconda3
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    working_directory: ~/bsipos/bsipos-conda
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+            keys:
+            #- v1-dependencies-{{ checksum "conda_base.txt" }}
+            # fallback to using the latest cache if no exact match is found
+            - cache-v2-
+
+      - run:
+          name: install dependencies
+          command: |
+            conda init -q bash
+            source $HOME/.bashrc
+            git config --global user.email "sbotond"
+            git config --global user.name "Botond Sipos"
+            git config --global core.editor ""
+            conda config --add channels bioconda
+            conda config --add channels conda-forge
+            if [ ! -e ./conda_base ];then conda create -p ./conda_base;fi
+            conda activate ./conda_base
+            conda update -q -y -n base -c defaults conda
+            conda install -y -q anaconda anaconda-client conda-build cmake make gcc_linux-64 gxx_linux-64 \
+            gfortran_linux-64 openssl conda-verify patchelf \
+            python-edlib parasail-python hmmer tqdm matplotlib-base seaborn six pandas
+            conda update --all -y -q
+            if [ ! -d isONclust2 ];
+            then;
+              git clone --recursive https://github.com/nanoporetech/isONclust2.git
+            fi;
+
+      - save_cache:
+            paths:
+              - ./conda_base
+            key: cache-v2-{{ checksum "conda_base/CACHE_KEY1" }}
+
+      - run:
+          name: test isONclust2 (linux)
+          command: |
+            source $HOME/.bashrc
+            conda activate ./conda_base
+            cd isONclust2;
+            git pull --force
+            mkdir build; cd build
+            cmake ..
+            make -j;
+            cd bin;
+            ./isONclust2 version
+            ./test_isONclust2
+            
