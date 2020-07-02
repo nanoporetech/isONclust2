@@ -5,12 +5,12 @@
 isONclust2 - a tool for de novo clustering of long transcriptomic reads
 =======================================================================
 
-`isONclust2` is a tool for clustering long transcriptomic reads in to gene families.
+`isONclust2` is a tool for clustering long transcriptomic reads into gene families.
 The tool is based on the approach pioneered by [isONclust](https://github.com/ksahlin/isONclust), using minimizers and occasional pairwise alignment.
 
-`isONclust2` is implemented in C++, which makes it fast enough to cluster large transcriptomic datasets produced on PromethION sequencers. The tool is not a mere re-implementation of the original `isONclust` approach, as it deals with the strandedness of the reads and provides further optional features. 
+`isONclust2` is implemented in C++, which makes it fast enough to cluster large transcriptomic datasets produced on PromethION P24 and P48 devices. The tool is not a re-implementation of the original `isONclust` approach, as it deals with the strandedness of the reads and provides further optional features. 
 
-**WARNING: In order to be able to handle large datasets, `isONclust2` splits the input data into batches which have to be processed in a specified order to obtain the results. Hence the use of `isONclust2` as a standalone tool is highly discouraged and one should always use it through the de novo transcriptomics pipeline at [https://github.com/nanoporetech/pipeline-nanopore-denovo-isoforms](https://github.com/nanoporetech/pipeline-nanopore-denovo-isoforms).**
+**WARNING: In order to be able to handle large datasets, `isONclust2` splits the input data into batches which have to be processed in a specified order to obtain the results. Hence, the use of `isONclust2` as a standalone tool is highly discouraged and one should always use it through the de novo transcriptomics pipeline at [https://github.com/nanoporetech/pipeline-nanopore-denovo-isoforms](https://github.com/nanoporetech/pipeline-nanopore-denovo-isoforms).**
 
 Getting Started
 ===============
@@ -130,7 +130,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 ## References and Supporting Information
 
-See the post announcing the transcriptomics tools at the Oxford Nanopore Technologies community [here](https://community.nanoporetech.com/posts/new-transcriptomics-analys).
+See the post announcing the transcriptomics tools at the Nanopore Community [here](https://community.nanoporetech.com/posts/new-transcriptomics-analys).
 
 ## Research Release
 
