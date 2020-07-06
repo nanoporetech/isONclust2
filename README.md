@@ -119,6 +119,10 @@ isONclust2 dump -v -i sorted/sorted_reads_idx.cer -o results b_0_1_2.cer
 Help
 ====
 
+## Acknowledgements
+
+This software was built in collaboration with [Kristoffer Sahlin](https://www.scilifelab.se/researchers/kristoffer-sahlin/) and [Paul Medvedev](http://medvedevgroup.com/).
+
 ## Licence and Copyright
 
 (c) 2020 Oxford Nanopore Technologies Ltd.
