@@ -57,7 +57,7 @@ jobs:
             git pull --force
             mkdir build; cd build
             cmake ..
-            make -j;
+            make -j 2;
             cd bin;
             ./isONclust2 version
             ./test_isONclust2
