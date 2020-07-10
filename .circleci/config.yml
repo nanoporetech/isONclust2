@@ -30,17 +30,9 @@ jobs:
             git config --global user.email "sbotond"
             git config --global user.name "Botond Sipos"
             git config --global core.editor ""
-            conda config --add channels bioconda
-            conda config --add channels conda-forge
-            if [ ! -e ./conda_base ];then conda create -p ./conda_base;fi
+            rm -fr conda_base
             apt-get update && apt-get upgrade -y;
             apt-get install -y build-essential cmake;
-            conda activate ./conda_base
-            conda update -q -y -n base -c defaults conda
-            conda install -y -q anaconda anaconda-client conda-build  \
-            openssl conda-verify patchelf \
-            python-edlib parasail-python hmmer tqdm matplotlib-base seaborn six pandas
-            conda update --all -y -q
             if [ ! -d isONclust2 ]
             then git clone --recursive https://github.com/nanoporetech/isONclust2.git
             fi;
@@ -51,10 +43,8 @@ jobs:
             key: cache-v2-
 
       - run:
-          name: test isONclust2 (linux)
+          name: build isONclust2 (linux)
           command: |
-            source $HOME/.bashrc
-            conda activate ./conda_base
             cd isONclust2;
             git pull --force
             mkdir build; cd build
@@ -62,5 +52,11 @@ jobs:
             make -j 2;
             cd bin;
             ./isONclust2 version
-            ./test_isONclust2
+            
+      - run:
+          name: test isONclust2 (linux)
+          command: |
+            source $HOME/.bashrc
+            cd isONclust2/build/bin;
+            ./test_isONclust2;
             
