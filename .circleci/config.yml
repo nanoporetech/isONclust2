@@ -39,9 +39,8 @@ jobs:
             gfortran_linux-64 openssl conda-verify patchelf \
             python-edlib parasail-python hmmer tqdm matplotlib-base seaborn six pandas
             conda update --all -y -q
-            if [ ! -d isONclust2 ];
-            then;
-              git clone --recursive https://github.com/nanoporetech/isONclust2.git
+            if [ ! -d isONclust2 ]
+            then git clone --recursive https://github.com/nanoporetech/isONclust2.git
             fi;
 
       - save_cache:
