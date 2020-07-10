@@ -46,7 +46,7 @@ jobs:
       - save_cache:
             paths:
               - ./conda_base
-            key: cache-v2-{{ checksum "conda_base/CACHE_KEY1" }}
+            key: cache-v2-
 
       - run:
           name: test isONclust2 (linux)
