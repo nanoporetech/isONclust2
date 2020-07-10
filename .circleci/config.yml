@@ -36,7 +36,7 @@ jobs:
             conda activate ./conda_base
             conda update -q -y -n base -c defaults conda
             conda install -y -q anaconda anaconda-client conda-build cmake make gcc_linux-64 gxx_linux-64 \
-            gfortran_linux-64 openssl conda-verify patchelf \
+            gfortran_linux-64 openssl conda-verify patchelf build-essential \
             python-edlib parasail-python hmmer tqdm matplotlib-base seaborn six pandas
             conda update --all -y -q
             if [ ! -d isONclust2 ]
