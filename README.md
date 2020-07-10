@@ -5,7 +5,7 @@
 isONclust2 - a tool for de novo clustering of long transcriptomic reads
 =======================================================================
 
-[![install with bioconda](https://anaconda.org/bioconda/isonclust2/badges/installer/conda.svg)](https://anaconda.org/bioconda/isonclust2) [![CircleCI](https://circleci.com/gh/nanoporetech/isONnclust2.svg?style=svg)](https://circleci.com/gh/nanoporetech/isONclust2)
+[![install with bioconda](https://anaconda.org/bioconda/isonclust2/badges/installer/conda.svg)](https://anaconda.org/bioconda/isonclust2) [![CircleCI](https://circleci.com/gh/nanoporetech/isONclust2.svg?style=svg)](https://circleci.com/gh/nanoporetech/isONclust2)
 
 `isONclust2` is a tool for clustering long transcriptomic reads into gene families.
 The tool is based on the approach pioneered by [isONclust](https://github.com/ksahlin/isONclust), using minimizers and occasional pairwise alignment.
