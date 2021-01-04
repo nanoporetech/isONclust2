@@ -389,7 +389,7 @@ void print_help_cluster()
 	    "\t-A --spoa-algo  spoa alignment algorithm:\n"
 	    "\t           * 0 (default): local\n"
 	    "\t           * 1 : global\n"
-	    "\t           * 1 : semi-global\n"
+	    "\t           * 2 : semi-global\n"
 	    "\t-z --min-purge         Purge minimizer database from output "
 	    "batch.\n"
 	    "\t-j --keep-seq          Do not purge non-representative "
