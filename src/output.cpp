@@ -259,8 +259,7 @@ void WriteClusters(BatchP& b, const std::string& outDir, SortedIdx* idx,
 	    }
 	}
 	std::ofstream outfq;
-	CreateFile(outDir + "/cluster_fastq/isONcluster_" +
-		       std::to_string(c.first) + ".fq",
+	CreateFile(outDir + "/cluster_fastq/" + std::to_string(c.first) + ".fq",
 		   outfq);
 	for (auto& r : c.second) {
 	    WriteFqRec(r, outfq);

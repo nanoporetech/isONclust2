@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.2)
 project(isONclust2)
 
 set(isONclust2_VERSION_MAJOR 2)
