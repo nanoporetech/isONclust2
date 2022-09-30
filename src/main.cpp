@@ -4,7 +4,7 @@
 #include "serialize.h"
 
 #include "args.h"
-#include "bioparser/bioparser.hpp"
+#include "bioparser/parser.hpp"
 #include "cluster.h"
 #include "minimizer.h"
 #include "output.h"
@@ -106,12 +106,10 @@ int mainSort(int argc, char* argv[])
     CreateOutdir(cmdArgs->BatchOutFolder);
     CreateOutdir(batchDir);
 
-    auto fqParser =
-	bioparser::createParser<bioparser::FastqParser, Seq>(cmdArgs->InFastq);
+    auto fqParser = bioparser::Parser<Sequence>::Create<bioparser::FastqParser>(cmdArgs->InFastq);
 
     SequencesP sequences;
-    sequences.reserve(50000000);
-    fqParser->parse(sequences, -1, false);
+	sequences = fqParser->Parse(-1);
 
     if (VERBOSE) {
 	cerr << "Parsed " << sequences.size() << " sequences." << endl;
