@@ -137,7 +137,7 @@ FqRecP GetRecords(std::ifstream& infq)
     std::getline(infq, rec->Qual);
     auto ididx = rec->Header.find(" ");
     rec->Id = rec->Header.substr(1, ididx);
-    return std::move(rec);
+    return rec;
 }
 
 void WriteFqRec(FqRecP& r, std::ofstream& fh)
