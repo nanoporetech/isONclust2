@@ -79,6 +79,8 @@ elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" OR CMAKE_COMPILER_IS_CLANGXX)
     endif()
 endif()
 
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+set(spoa_use_cereal ON)
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/vendor/bioparser/vendor/zlib)
 include_directories(${PROJECT_SOURCE_DIR}/vendor/bioparser/include)
@@ -91,7 +93,6 @@ include_directories(${PROJECT_BINARY_DIR}/vendor/bioparser/vendor/zlib)
 add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)
 add_subdirectory(vendor/tbb EXCLUDE_FROM_ALL)
 add_subdirectory(vendor/parasail EXCLUDE_FROM_ALL)
-set(spoa_use_cereal ON)
 add_subdirectory(vendor/spoa EXCLUDE_FROM_ALL)
 
 
