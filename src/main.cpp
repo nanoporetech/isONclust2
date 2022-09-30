@@ -106,9 +106,9 @@ int mainSort(int argc, char* argv[])
     CreateOutdir(cmdArgs->BatchOutFolder);
     CreateOutdir(batchDir);
 
-    auto fqParser = bioparser::Parser<Sequence>::Create<bioparser::FastqParser>(cmdArgs->InFastq);
+    auto fqParser = bioparser::Parser<Seq>::Create<bioparser::FastqParser>(cmdArgs->InFastq);
 
-    SequencesP sequences;
+    Sequences sequences;
 	sequences = fqParser->Parse(-1);
 
     if (VERBOSE) {
