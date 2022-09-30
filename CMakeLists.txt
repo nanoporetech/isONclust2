@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.2)
 project(isONclust2)
 
 set(isONclust2_VERSION_MAJOR 2)
-set(isONclust2_VERSION_MINOR 3)
+set(isONclust2_VERSION_MINOR 4)
 
 set(CMAKE_MACOSX_RPATH 0)
 #set(CMAKE_SYSTEM_PROCESSOR x86-64)
