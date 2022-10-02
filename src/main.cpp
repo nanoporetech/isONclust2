@@ -4,7 +4,7 @@
 #include "serialize.h"
 
 #include "args.h"
-#include "bioparser/bioparser.hpp"
+#include "bioparser/parser.hpp"
 #include "cluster.h"
 #include "minimizer.h"
 #include "output.h"
@@ -106,12 +106,10 @@ int mainSort(int argc, char* argv[])
     CreateOutdir(cmdArgs->BatchOutFolder);
     CreateOutdir(batchDir);
 
-    auto fqParser =
-	bioparser::createParser<bioparser::FastqParser, Seq>(cmdArgs->InFastq);
+    auto fqParser = bioparser::Parser<Seq>::Create<bioparser::FastqParser>(cmdArgs->InFastq);
 
     SequencesP sequences;
-    sequences.reserve(50000000);
-    fqParser->parse(sequences, -1, false);
+	sequences = fqParser->Parse(-1);
 
     if (VERBOSE) {
 	cerr << "Parsed " << sequences.size() << " sequences." << endl;
@@ -291,7 +289,18 @@ int mainCluster(int argc, char* argv[])
     std::int8_t q = -20;
     std::int8_t c = -1;
 
-    std::uint8_t algorithm = cmdArgs->SpoaAlgo;
+    auto algorithm = spoa::AlignmentType::kSW;
+	switch (cmdArgs->SpoaAlgo) {
+		case 0:
+			algorithm = spoa::AlignmentType::kSW;
+			break;
+		case 1:
+			algorithm = spoa::AlignmentType::kNW;
+			break;
+		case 2:
+			algorithm = spoa::AlignmentType::kOV;
+			break;
+	}
     if (VERBOSE) {
 	if (leftBatch->SortArgs.ConsMaxSize > 0) {
 	    cerr << "Generating consensus using spoa algorithm: ";
@@ -311,8 +320,9 @@ int mainCluster(int argc, char* argv[])
     }
     std::uint8_t result = 0;
 
-    SpoaEngine = spoa::createAlignmentEngine(
-	static_cast<spoa::AlignmentType>(algorithm), m, n, g, e, q, c);
+	SpoaEngine = std::unique_ptr<spoa::AlignmentEngine>(spoa::AlignmentEngine::Create(
+							algorithm, m, n, g, e, q, c));
+
     if (cmdArgs->Mode != None) {
 	leftBatch->SortArgs.Mode = cmdArgs->Mode;
     }

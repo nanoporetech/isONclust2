@@ -4,6 +4,7 @@
 #include<vector>
 #include<map>
 #include<tuple>
+#include<string>
 
 struct ErrTarget {
     double Error1;

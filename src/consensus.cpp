@@ -16,8 +16,8 @@ void AddSeqToGraph(const std::string& seq, spoa::Graph* graphPtr,
 		   spoa::AlignmentEngine* ae, std::uint32_t weight)
 {
     auto graph = std::unique_ptr<spoa::Graph>(graphPtr);
-    auto alignment = ae->align(seq, graph);
-    graph->add_alignment(alignment, seq, weight);
+    auto alignment = ae->Align(seq, *graphPtr);
+    graph->AddAlignment(alignment, seq, weight);
     graph.release();
 }
 
@@ -26,8 +26,8 @@ void AddSeqToGraphWeight(const std::string& seq,
 			 spoa::Graph* graphPtr, spoa::AlignmentEngine* ae)
 {
     auto graph = std::unique_ptr<spoa::Graph>(graphPtr);
-    auto alignment = ae->align(seq, graph);
-    graph->add_alignment(alignment, seq, w);
+    auto alignment = ae->Align(seq, *graph);
+    graph->AddAlignment(alignment, seq, w);
     graph.release();
 }
 
@@ -38,7 +38,7 @@ bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
 			    int matchStrand, int consMinSize, int consMaxSize,
 			    int kmerSize, int windowSize)
 {
-    auto leftSize = leftGraphPtr->num_sequences();
+    auto leftSize = leftGraphPtr->sequences().size();
     auto rightSize = leftSize;
     rightSize = 1;
 
@@ -49,7 +49,7 @@ bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
     }
 
     if (rightGraphPtr != nullptr) {
-	rightSize = rightGraphPtr->num_sequences();
+	rightSize = rightGraphPtr->sequences().size();
     }
 
     auto clsRep = cl.at(0).get();
@@ -81,11 +81,11 @@ bool UpdateClusterConsensus(std::string& consName, Cluster& cl,
 	AddSeqToGraph(rs, leftGraphPtr, SpoaEngine.get(), rightSize);
     }
 
-    if (int(leftGraphPtr->num_sequences()) < consMinSize) {
+    if (int(leftGraphPtr->sequences().size()) < consMinSize) {
 	return false;
     }
 
-    std::string cons = leftGraphPtr->generate_consensus();
+    std::string cons = leftGraphPtr->GenerateConsensus();
 
     cons.reserve(cons.size());
     auto consLen = cons.length();
@@ -129,9 +129,9 @@ std::unique_ptr<spoa::Graph> ConsPurge(spoa::Graph* graphPtr,
 				       spoa::AlignmentEngine* ae, Cluster& cl)
 {
     auto& repSeq = cl[0]->RawSeq->Str();
-    auto w = graphPtr->num_sequences();
-    graphPtr->clear();
-    auto newGraph = spoa::createGraph();
+    auto w = graphPtr->sequences().size();
+    graphPtr->Clear();
+    auto newGraph = std::unique_ptr<spoa::Graph>(new spoa::Graph);
     AddSeqToGraph(repSeq, newGraph.get(), ae, w);
     return newGraph;
 }

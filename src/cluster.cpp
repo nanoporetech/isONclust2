@@ -196,7 +196,9 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet,
 		reads[i]->insert(reads[i]->begin(), 1,
 				 std::unique_ptr<ProcSeq>(nrep));
 	    }
-	    leftBatch->ConsGs.emplace_back(spoa::createGraph());
+
+		auto leftGraph = std::unique_ptr<spoa::Graph>(new spoa::Graph);
+	    leftBatch->ConsGs.push_back(std::move(leftGraph));
 
 	    AddSeqToGraph(reads[i]->at(0)->RawSeq->Str(),
 			  leftBatch->ConsGs[newId].get(), SpoaEngine.get(), 1);
@@ -294,7 +296,7 @@ void ClusterSortedReads(BatchP& leftBatch, BatchP& rightBatch, bool quiet,
 		UpdateMinDB(best, oldMins, cls[best]->at(REP)->Mins, minDB);
 	    }
 
-	    if (ok && (int(consGraphLeft->num_sequences()) > consMaxSize)) {
+	    if (ok && (int(consGraphLeft->sequences().size()) > consMaxSize)) {
 		auto newGraph =
 		    ConsPurge(consGraphLeft, SpoaEngine.get(), *(cls[best]));
 		leftBatch->ConsGs[best].swap(newGraph);

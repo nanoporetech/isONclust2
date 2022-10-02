@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.2)
 project(isONclust2)
 
 set(isONclust2_VERSION_MAJOR 2)
-set(isONclust2_VERSION_MINOR 3)
+set(isONclust2_VERSION_MINOR 4)
 
 set(CMAKE_MACOSX_RPATH 0)
 #set(CMAKE_SYSTEM_PROCESSOR x86-64)
@@ -79,13 +79,15 @@ elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" OR CMAKE_COMPILER_IS_CLANGXX)
     endif()
 endif()
 
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+set(spoa_use_cereal ON)
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/vendor/bioparser/vendor/zlib)
 include_directories(${PROJECT_SOURCE_DIR}/vendor/bioparser/include)
 include_directories(${PROJECT_SOURCE_DIR}/vendor/tbb/include)
 include_directories(${PROJECT_SOURCE_DIR}/vendor/parasail)
-include_directories(${PROJECT_SOURCE_DIR}/vendor/spoa)
-include_directories(${PROJECT_SOURCE_DIR}/vendor/spoa/vendor/cereal/include)
+include_directories(${PROJECT_SOURCE_DIR}/vendor/spoa/include)
+include_directories(${PROJECT_SOURCE_DIR}/vendor/cereal/include)
 
 include_directories(${PROJECT_BINARY_DIR}/vendor/bioparser/vendor/zlib)
 add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)
@@ -137,11 +139,20 @@ set_target_properties(isONclust2 PROPERTIES LINK_SEARCH_END_STATIC 1)
 target_link_libraries(isONclust2 tbb_static bioparser parasail cereal Threads::Threads spoa)
 
 
+include(FetchContent)
+FetchContent_Declare(
+	googletest
+	GIT_REPOSITORY https://github.com/google/googletest.git
+	GIT_TAG release-1.12.1
+	)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
 add_executable(test_isONclust2
         test/isONclust2_test.cpp)
 set_target_properties(test_isONclust2 PROPERTIES LINK_SEARCH_START_STATIC 1)
 set_target_properties(test_isONclust2 PROPERTIES LINK_SEARCH_END_STATIC 1)
 
-add_subdirectory(vendor/googletest/googletest EXCLUDE_FROM_ALL)
 target_link_libraries(test_isONclust2 bioparser parasail tbb_static lisONclust2 gtest_main Threads::Threads spoa)
 

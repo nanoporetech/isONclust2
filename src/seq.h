@@ -8,7 +8,9 @@
 #include <string>
 #include <vector>
 
-#include "bioparser/bioparser.hpp"
+#include "bioparser/parser.hpp"
+#include "bioparser/fasta_parser.hpp"
+#include "bioparser/fastq_parser.hpp"
 #include "kmer_index.h"
 
 class Seq;
